@@ -7,12 +7,36 @@ import me.hwiggy.kommander.arguments.Synopsis
 abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     private val children = Children()
 
+    /**
+     * The name of this command. Also the primary identifier
+     */
     abstract val name: String
+
+    /**
+     * The description for this command.
+     */
     abstract val description: String
+
+    /**
+     * The usage for this command
+     * Composed of primary identifier, plus either a parameter listing or subcommand listing, if available
+     */
+    val usage: String
+        get() = "$name ${getParameterList() ?: ""}".trim()
+
+    /**
+     * The [Synopsis] for this command
+     */
     abstract val synopsis: Synopsis
 
+    /**
+     * Secondary identifiers for this command
+     */
     open val aliases = emptyList<String>()
 
+    /**
+     * Registers another command as a child to this command
+     */
     fun addChild(command: C) = children.register(command)
 
     /**
@@ -41,25 +65,55 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     fun processArguments(args: Array<out String>) =
         args.joinToString(" ").let(Arguments::parse).let(synopsis::process)
 
+    /**
+     * Derives the parameter list from [Synopsis] or available children.
+     * @return
+     *      The first non-null element available from the following:
+     *      - A concatenated string of parameters
+     *      - A concatenated string of child identifiers
+     *      OR `null`
+     */
     fun getParameterList(): String? =
         synopsis.concatParameters() ?:
         children.concatIdentifiers()?.let { "<$it>" }
 
+    /**
+     * Represents a registered map of child commands
+     */
     inner class Children {
+        /**
+         * Map for registering children by name
+         */
         private val byLabel = HashMap<String, C>()
+
+        /**
+         * Map for registering children by alias
+         */
         private val byAlias = HashMap<String, C>()
 
-        fun register(command: C) = register(command.name, command, *command.aliases.toTypedArray())
-        fun register(name: String, command: C, vararg aliases: String) {
-            byLabel[name.lowercase()] = command
-            aliases.forEach {
+        /**
+         * Registers a command to each of the maps
+         */
+        fun register(command: C) {
+            byLabel[command.name.lowercase()] = command
+            command.aliases.forEach {
                 byAlias[it.lowercase()] = command
             }
         }
 
+        /**
+         * Attempts to locate a command using a primary or secondary identifier
+         */
         fun find(identifier: String) = byLabel[identifier] ?: byAlias[identifier]
 
+        /**
+         * Returns the primary labels for every registered child
+         */
         fun getIdentifiers() = byLabel.keys.ifEmpty { null }
+
+        /**
+         * Joins the primary labels for each registered child, separated by `|`
+         */
         fun concatIdentifiers() = getIdentifiers()?.joinToString("|")
     }
 }
