@@ -59,6 +59,7 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
  * Represents [Arguments] that have been processed through a Command's [Synopsis]
  */
 class ProcessedArguments(private val map: Map<String, Any?>) {
+    val size = map.values.size
     fun <T> optional(name: String) = map[name] as T?
     fun <T> required(name: String, error: String) =
         optional<T>(name) ?: throw InvalidSyntaxException(error)
