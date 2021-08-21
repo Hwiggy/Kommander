@@ -6,14 +6,12 @@ import me.hwiggy.kommander.InvalidSyntaxException
  * Represents a synopsis of named parameters and parameter groups
  * Used to build help and syntax information for commands.
  *
- * @param[description] A description of the command this synopsis is for
  */
-class Synopsis(description: String, init: Configurator.() -> Unit) {
+class Synopsis(init: Configurator.() -> Unit) {
     private val elements = ArrayList<Pair<ElementType, String?>>()
     private val parameters = ArrayList<Parameter<*>>()
 
     init {
-        addElement(ElementType.DESCRIPTION, description)
         Configurator().also(init)
     }
 
@@ -156,11 +154,6 @@ class Synopsis(description: String, init: Configurator.() -> Unit) {
      * Marker enum for Synopsis Elements
      */
     enum class ElementType {
-        /**
-         * A description of the command this Synopsis is for
-         */
-        DESCRIPTION,
-
         /**
          * The name of a parameter
          */

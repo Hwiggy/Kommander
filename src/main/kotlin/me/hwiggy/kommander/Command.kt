@@ -8,6 +8,7 @@ abstract class Command<S, C : Command<S, C>> {
     private val children = Children()
 
     abstract val name: String
+    abstract val description: String
     abstract val synopsis: Synopsis
 
     open val aliases = emptyList<String>()
