@@ -4,7 +4,7 @@ import me.hwiggy.kommander.arguments.Arguments
 import me.hwiggy.kommander.arguments.ProcessedArguments
 import me.hwiggy.kommander.arguments.Synopsis
 
-abstract class Command<S, C : Command<S, C>> {
+abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     private val children = Children()
 
     abstract val name: String
@@ -36,12 +36,6 @@ abstract class Command<S, C : Command<S, C>> {
     fun cascade(args: Array<out String>, next: (String, C) -> Unit) = cascade<Unit>(args, next)
 
     /**
-     * Execution callback for this command
-     * Recommended default behavior is to send an invalid sub-command message.
-     */
-    abstract fun execute(sender: S, arguments: ProcessedArguments)
-
-    /**
      * Concatenates the received arguments, then processes them against the command synopsis.
      */
     fun processArguments(args: Array<out String>) =
@@ -68,4 +62,15 @@ abstract class Command<S, C : Command<S, C>> {
         fun getIdentifiers() = byLabel.keys.ifEmpty { null }
         fun concatIdentifiers() = getIdentifiers()?.joinToString("|")
     }
+}
+
+/**
+ * Represents the executable part of a [Command]
+ */
+fun interface CommandExecutor<S> {
+    /**
+     * Execution callback for commands
+     * Recommended default behavior is to send an invalid sub-command message.
+     */
+    fun execute(sender: S, arguments: ProcessedArguments)
 }
