@@ -3,6 +3,7 @@ package me.hwiggy.kommander
 import me.hwiggy.kommander.arguments.Arguments
 import me.hwiggy.kommander.arguments.ProcessedArguments
 import me.hwiggy.kommander.arguments.Synopsis
+import java.lang.Exception
 
 abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     private val children = Children()
@@ -45,19 +46,34 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
      * @param[next] A BiFunction for the next identifier and child
      *
      */
-    fun <O> cascade(args: Array<out String>, next: (String, C) -> O): O? {
-        if (args.isNotEmpty()) {
-            val identifier = args.first().lowercase()
-            val found = children.find(identifier)
-            if (found != null) return next(identifier, found)
+    fun <O> cascade(
+        args: Array<out String>,
+        next: (String, C) -> O,
+        last: () -> O
+    ): O? {
+        return try {
+            if (args.isNotEmpty()) {
+                val identifier = args.first().lowercase()
+                val found = children.find(identifier)
+                if (found != null) return next(identifier, found)
+            }
+            last()
+        } catch (ex: Exception) {
+            handleThrown(ex)
+            null
         }
-        return null
     }
+
+    open fun handleThrown(ex: Exception) = Unit
 
     /**
      * Overload parameter for [cascade] with a [Unit] return type
      */
-    fun cascade(args: Array<out String>, next: (String, C) -> Unit) = cascade<Unit>(args, next)
+    fun cascade(
+        args: Array<out String>,
+        next: (String, C) -> Unit,
+        last: () -> Unit
+    ) = cascade<Unit>(args, next, last)
 
     /**
      * Concatenates the received arguments, then processes them against the command synopsis.
