@@ -27,7 +27,7 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     /**
      * The [Synopsis] for this command
      */
-    abstract val synopsis: Synopsis
+    open val synopsis = Synopsis { /* Default implementation has no parameters */ }
 
     /**
      * Secondary identifiers for this command
