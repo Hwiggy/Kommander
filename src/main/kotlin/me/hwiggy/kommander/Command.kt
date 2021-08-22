@@ -49,7 +49,8 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     fun <O> cascade(
         args: Array<out String>,
         next: (String, C) -> O,
-        last: () -> O
+        last: () -> O,
+        onError: (Exception) -> O
     ): O? {
         return try {
             if (args.isNotEmpty()) {
@@ -58,13 +59,8 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
                 if (found != null) return next(identifier, found)
             }
             last()
-        } catch (ex: Exception) {
-            handleThrown(ex)
-            null
-        }
+        } catch (ex: Exception) { onError(ex) }
     }
-
-    open fun handleThrown(ex: Exception) = Unit
 
     /**
      * Overload parameter for [cascade] with a [Unit] return type
@@ -72,8 +68,9 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     fun cascade(
         args: Array<out String>,
         next: (String, C) -> Unit,
-        last: () -> Unit
-    ) = cascade<Unit>(args, next, last)
+        last: () -> Unit,
+        onError: (Exception) -> Unit
+    ) = cascade<Unit>(args, next, last, onError)
 
     /**
      * Concatenates the received arguments, then processes them against the command synopsis.
