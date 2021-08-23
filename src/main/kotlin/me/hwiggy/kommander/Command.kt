@@ -5,11 +5,11 @@ import me.hwiggy.kommander.arguments.ProcessedArguments
 import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 
-abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
+abstract class Command<Sender> : CommandExecutor<Sender> {
     private val children = Children()
 
     /**
-     * The name of this command. Also the primary identifier
+     * The name of this command, also the primary identifier
      */
     abstract val name: String
 
@@ -38,7 +38,7 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
     /**
      * Registers another command as a child to this command
      */
-    fun addChild(command: C) = children.register(command)
+    fun addChild(command: Command<out Sender>) = children.register(command)
 
     /**
      * Attempts to cascade into command children using the provided arguments
@@ -48,7 +48,7 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
      */
     fun <O> cascade(
         args: Array<out String>,
-        next: (String, C) -> O,
+        next: (String, Command<out Sender>) -> O,
         last: () -> O,
         onError: (Exception) -> O
     ): O? {
@@ -67,7 +67,7 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
      */
     fun cascade(
         args: Array<out String>,
-        next: (String, C) -> Unit,
+        next: (String, Command<out Sender>) -> Unit,
         last: () -> Unit,
         onError: (Exception) -> Unit
     ) = cascade<Unit>(args, next, last, onError)
@@ -97,17 +97,17 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
         /**
          * Map for registering children by name
          */
-        private val byLabel = HashMap<String, C>()
+        private val byLabel = HashMap<String, Command<out Sender>>()
 
         /**
          * Map for registering children by alias
          */
-        private val byAlias = HashMap<String, C>()
+        private val byAlias = HashMap<String, Command<out Sender>>()
 
         /**
          * Registers a command to each of the maps
          */
-        fun register(command: C) {
+        fun register(command: Command<out Sender>) {
             byLabel[command.name.lowercase()] = command
             command.aliases.forEach {
                 byAlias[it.lowercase()] = command
@@ -134,7 +134,7 @@ abstract class Command<S, C : Command<S, C>> : CommandExecutor<S> {
 /**
  * Represents the executable part of a [Command]
  */
-fun interface CommandExecutor<S> {
+fun interface CommandExecutor<in S> {
     /**
      * Execution callback for commands
      * Recommended default behavior is to send an invalid sub-command message.
