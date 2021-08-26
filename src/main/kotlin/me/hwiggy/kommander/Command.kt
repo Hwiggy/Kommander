@@ -6,7 +6,7 @@ import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 
 abstract class Command<Sender> : CommandExecutor<Sender> {
-    private val children = Children()
+    val children = Children()
 
     /**
      * The name of this command, also the primary identifier
@@ -128,6 +128,8 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
          * Joins the primary labels for each registered child, separated by `|`
          */
         fun concatIdentifiers() = getIdentifiers()?.joinToString("|")
+
+        fun values() = byLabel.values.toList()
     }
 }
 
