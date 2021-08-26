@@ -5,7 +5,7 @@ import me.hwiggy.kommander.arguments.ProcessedArguments
 import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 
-abstract class Command<Sender> : CommandExecutor<Sender> {
+abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> : CommandExecutor<@UnsafeVariance Sender, Output> {
     val children = Children()
 
     /**
@@ -38,7 +38,7 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
     /**
      * Registers another command as a child to this command
      */
-    fun addChild(command: Command<out Sender>) = children.register(command)
+    fun addChild(command: @UnsafeVariance C) = children.register(command)
 
     /**
      * Attempts to cascade into command children using the provided arguments
@@ -46,12 +46,12 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
      * @param[next] A BiFunction for the next identifier and child
      *
      */
-    fun <O> cascade(
+    fun cascade(
         args: Array<out String>,
-        next: (String, Command<out Sender>) -> O,
-        last: () -> O,
-        onError: (Exception) -> O
-    ): O? {
+        next: (String, C) -> Output,
+        last: () -> Output,
+        onError: (Exception) -> Output
+    ): Output? {
         return try {
             if (args.isNotEmpty()) {
                 val identifier = args.first().lowercase()
@@ -59,18 +59,10 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
                 if (found != null) return next(identifier, found)
             }
             last()
-        } catch (ex: Exception) { onError(ex) }
+        } catch (ex: Exception) {
+            onError(ex)
+        }
     }
-
-    /**
-     * Overload parameter for [cascade] with a [Unit] return type
-     */
-    fun cascade(
-        args: Array<out String>,
-        next: (String, Command<out Sender>) -> Unit,
-        last: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = cascade<Unit>(args, next, last, onError)
 
     /**
      * Concatenates the received arguments, then processes them against the command synopsis.
@@ -87,8 +79,7 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
      *      OR `null`
      */
     fun getParameterList(): String? =
-        synopsis.concatParameters() ?:
-        children.concatIdentifiers()?.let { "<$it>" }
+        synopsis.concatParameters() ?: children.concatIdentifiers()?.let { "<$it>" }
 
     /**
      * Represents a registered map of child commands
@@ -97,17 +88,17 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
         /**
          * Map for registering children by name
          */
-        private val byLabel = HashMap<String, Command<out Sender>>()
+        private val byLabel = HashMap<String, C>()
 
         /**
          * Map for registering children by alias
          */
-        private val byAlias = HashMap<String, Command<out Sender>>()
+        private val byAlias = HashMap<String, C>()
 
         /**
          * Registers a command to each of the maps
          */
-        fun register(command: Command<out Sender>) {
+        fun register(command: @UnsafeVariance C) {
             byLabel[command.name.lowercase()] = command
             command.aliases.forEach {
                 byAlias[it.lowercase()] = command
@@ -136,10 +127,10 @@ abstract class Command<Sender> : CommandExecutor<Sender> {
 /**
  * Represents the executable part of a [Command]
  */
-fun interface CommandExecutor<in S> {
+fun interface CommandExecutor<in S, out Output> {
     /**
      * Execution callback for commands
      * Recommended default behavior is to send an invalid sub-command message.
      */
-    fun execute(sender: S, arguments: ProcessedArguments)
+    fun execute(sender: S, arguments: ProcessedArguments): Output
 }
