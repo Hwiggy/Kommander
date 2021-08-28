@@ -1,6 +1,6 @@
 package me.hwiggy.kommander.arguments
 
-import me.hwiggy.kommander.InvalidSyntaxException
+import me.hwiggy.kommander.InvalidParameterException
 
 /**
  * Represents a synopsis of named parameters and parameter groups
@@ -29,7 +29,7 @@ class Synopsis(init: Configurator.() -> Unit) {
     private fun addParameter(parameter: Parameter<*>) = parameter.apply {
         addElement(ElementType.PARAMETER_NAME, name)
         addElement(ElementType.PARAMETER_DESCRIPTION, description)
-        if (this is Optional<*>) addElement(ElementType.PARAMETER_DEFAULT, default)
+        if (this.default != null) addElement(ElementType.PARAMETER_DEFAULT, default)
         (adapter as? BoundAdapter<*>)?.apply {
             if (min != null) addElement(ElementType.VALUE_MIN, min)
             if (max != null) addElement(ElementType.VALUE_MAX, max)
@@ -47,10 +47,29 @@ class Synopsis(init: Configurator.() -> Unit) {
             addElement(ElementType.GROUP_OPTION, option.synopsisName)
             addElement(ElementType.GROUP_OPTION_DESCRIPTION, description)
         }
-        if (this is Optional<*>) elements += ElementType.GROUP_DEFAULT to default?.toString()
+        if (this.default != null) elements += ElementType.GROUP_DEFAULT to default!!.synopsisName
     }.also(parameters::add)
 
     inner class Configurator {
+        /**
+         * Configures an required parameter
+         * @param[name] The name of this parameter
+         * @param[description] A description of this parameter
+         * @param[adapter] The Adapter used to parse this parameter
+         * @param[default] The default value of this parameter
+         */
+        fun <T> reqParam(
+            name: String,
+            description: String,
+            adapter: Adapter<T>,
+            default: T? = null
+        ) = object : Parameter<T> {
+            override val name = name
+            override val description = description
+            override val default = default
+            override val adapter = adapter
+        }.run(::addParameter)
+
         /**
          * Configures an optional parameter
          * @param[name] The name of this parameter
@@ -63,31 +82,36 @@ class Synopsis(init: Configurator.() -> Unit) {
             description: String,
             adapter: Adapter<T>,
             default: T? = null
-        ) = object : Parameter<T>, Optional<T> {
+        ) = object : Parameter<T> {
             override val name = name
             override val description = description
             override val default = default
             override val adapter = adapter
+            override fun isOptional() = true
         }.run(::addParameter)
 
         /**
-         * Configures a required parameter
-         * @param[name] The name of this parameter
-         * @param[description] A description of this parameter
-         * @param[adapter] The Adapter used to parse this parameter
+         * Configures a required group
+         * @param[name] The name of this group
+         * @param[description] A description of this group
+         * @param[transform] The Adapter used to parse options
+         * @param[default] The default option of this group
          */
-        fun <T> reqParam(
+        fun <T> reqGroup(
             name: String,
             description: String,
-            adapter: Adapter<T>
-        ) = object : Parameter<T> {
+            transform: (String) -> T?,
+            default: T? = null,
+            init: Group<T>.Configurator.() -> Unit
+        ) where T : Group.Option, T : Enum<T> = object : Group<T>(init) {
             override val name = name
             override val description = description
-            override val adapter = adapter
-        }.run(::addParameter)
+            override val adapter = Adapter.single(transform)
+            override val default = default
+        }.run(::addGroup)
 
         /**
-         * Configures an optional group
+         * Configures a required group
          * @param[name] The name of this group
          * @param[description] A description of this group
          * @param[transform] The Adapter used to parse options
@@ -99,28 +123,12 @@ class Synopsis(init: Configurator.() -> Unit) {
             transform: (String) -> T?,
             default: T? = null,
             init: Group<T>.Configurator.() -> Unit
-        ) where T : Group.Option, T : Enum<T> = object : Group<T>(init), Optional<T> {
-            override val name = name
-            override val description = description
-            override val adapter = Adapter.single(transform)
-            override val default = default
-        }.run(::addGroup)
-
-        /**
-         * Configures an optional group
-         * @param[name] The name of this group
-         * @param[description] A description of this group
-         * @param[transform] The Adapter used to parse options
-         */
-        fun <T> reqGroup(
-            name: String,
-            description: String,
-            transform: (String) -> T?,
-            init: Group<T>.Configurator.() -> Unit
         ) where T : Group.Option, T : Enum<T> = object : Group<T>(init) {
             override val name = name
             override val description = description
             override val adapter = Adapter.single(transform)
+            override val default = default
+            override fun isOptional() = true
         }.run(::addGroup)
     }
 
@@ -128,17 +136,8 @@ class Synopsis(init: Configurator.() -> Unit) {
      * Processes arguments using the defined parameters list
      */
     fun process(input: Arguments) = parameters.associateTo(HashMap()) {
-        var out = input.next(it.adapter)
-        if (it is Optional<*>) {
-            out = out ?: it.default
-        } else if (out == null) throw InvalidSyntaxException(
-            "Required parameter '${it.name}' is not present!"
-        )
-        if (it is Group<*>) {
-            if (!it.isValid(out)) throw InvalidSyntaxException(
-                "Option '$out' not valid for parameter '${it.name}'!"
-            )
-        }
+        val out = input.next(it.adapter) ?: it.default
+        if (it is Group<*> && !it.isValid(out)) throw InvalidParameterException(out, it.name)
         it.name to out
     }.let(::ProcessedArguments)
 
@@ -147,7 +146,7 @@ class Synopsis(init: Configurator.() -> Unit) {
      */
     fun concatParameters() = if (parameters.isEmpty()) null else parameters.joinToString(" ") {
         val identifier = if (it is Group<*>) it.concatOptions() else it.name
-        return@joinToString if (it is Optional<*>) "($identifier)" else "<$identifier>"
+        return@joinToString if (it.isOptional()) "($identifier)" else "<$identifier>"
     }
 
     /**
@@ -207,16 +206,6 @@ class Synopsis(init: Configurator.() -> Unit) {
 }
 
 /**
- * Marker interface for optional parameters and groups
- */
-interface Optional<T> {
-    /**
-     * The default value of this parameter
-     */
-    val default: T?
-}
-
-/**
  * Marker interface for a Synopsis parameter
  */
 interface Parameter<T> {
@@ -234,6 +223,16 @@ interface Parameter<T> {
      * The adapter used to parse this parameter
      */
     val adapter: Adapter<out T>
+
+    /**
+     * The default value of this parameter, if any
+     */
+    val default: T?
+
+    /**
+     * Whether this Parameter is Optional; default false
+     */
+    fun isOptional() = false
 }
 
 /**
