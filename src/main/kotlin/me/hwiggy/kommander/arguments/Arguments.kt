@@ -62,9 +62,22 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
 class ProcessedArguments(private val map: Map<String, Any?>) {
     val size = map.values.size
 
-    fun <T> optional(name: String, default: T) = optional(name) ?: default
-    fun <T> optional(name: String) = map[name] as T?
+    fun <Output> optional(name: String, default: Output) = optional(name) ?: default
+    fun <Output> optional(name: String) = map[name] as? Output?
 
-    fun <T> required(name: String, error: String) =
-        optional<T>(name) ?: throw InvalidSyntaxException(error)
+    fun <Output> optional(
+        name: String, converter: (String) -> Output?
+    ) = optional<String>(name)?.let(converter)
+
+    fun <Output> optional(
+        name: String, default: Output, converter: (String) -> Output?
+    ) = optional(name, converter) ?: default
+
+    fun <Output> required(
+        name: String, error: String
+    ) = optional<Output>(name) ?: throw InvalidSyntaxException(error)
+
+    fun <Output> required(
+        name: String, error: String, converter: (String) -> Output?
+    ): Output = optional(name, converter) ?: throw InvalidSyntaxException(error)
 }
