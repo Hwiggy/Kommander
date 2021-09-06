@@ -2,6 +2,7 @@ package me.hwiggy.kommander.arguments
 
 import me.hwiggy.kommander.InvalidSyntaxException
 import java.util.regex.Pattern
+import kotlin.reflect.KProperty
 
 /**
  * This class represents an iterable array of Strings to be used during parameter parsing.
@@ -60,7 +61,22 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
  */
 class ProcessedArguments(private val map: Map<String, Any?>) {
     val size = map.values.size
+
+    fun <T> optional(name: String, default: T) = optional(name) ?: default
     fun <T> optional(name: String) = map[name] as T?
+
     fun <T> required(name: String, error: String) =
         optional<T>(name) ?: throw InvalidSyntaxException(error)
+
+    fun optional() = object {
+        operator fun <T> getValue(thisRef: Any?, property: KProperty<*>) = optional<T>(property.name)
+    }
+
+    fun <T> optional(default: T) = object {
+        operator fun getValue(thisRef: Any?, property: KProperty<*>) = optional(property.name, default)
+    }
+
+    fun required(error: String) = object {
+        operator fun <T> getValue(thisRef: Any?, property: KProperty<*>) = required<T>(property.name, error)
+    }
 }

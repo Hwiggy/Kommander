@@ -5,10 +5,6 @@ package me.hwiggy.kommander
  */
 class InvalidSyntaxException(error: String) : RuntimeException(error)
 
-class MissingParameterException(name: String) : RuntimeException(
-    "Required parameter '$name' is not present!"
-)
-
 class InvalidParameterException(option: Any?, group: String) : RuntimeException(
     "Option '$option' not valid for parameter '$group'!"
 )
