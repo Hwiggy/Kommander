@@ -40,6 +40,11 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
         adapter: (Arguments) -> T?, error: String
     ) = next(adapter) ?: throw InvalidSyntaxException(error)
 
+    /**
+     * Reduces [amount] from the current [cursor] to 'undo' an argument reading.
+     */
+    fun backtrack(amount: Int = 1) { cursor -= amount }
+
     companion object {
         // This pattern splits on quoted pairs, or spaces as a fallback.
         private val ARGS_PATTERN = Pattern.compile("\"([^\"]*)\"|([^ ]+)")
