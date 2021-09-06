@@ -15,74 +15,80 @@ open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
         @JvmStatic fun byte() = single(String::toByte)
         @JvmStatic fun byte(
             min: Byte? = Byte.MIN_VALUE, max: Byte? = Byte.MAX_VALUE, error: String? = null
-        ) = byte().bound(min, max, error)
+        ) = byte().bound(min, max, error) { it }
 
         @JvmStatic fun short() = single(String::toShort)
         @JvmStatic fun short(
             min: Short? = Short.MIN_VALUE, max: Short? = Short.MAX_VALUE, error: String? = null
-        ) = short().bound(min, max, error)
+        ) = short().bound(min, max, error) { it }
 
         @JvmStatic fun int() = single(String::toInt)
         @JvmStatic fun int(
             min: Int? = Int.MIN_VALUE, max: Int? = Int.MAX_VALUE, error: String? = null
-        ) = int().bound(min, max, error)
+        ) = int().bound(min, max, error) { it }
 
         @JvmStatic fun long() = single(String::toLong)
         @JvmStatic fun long(
             min: Long? = Long.MIN_VALUE, max: Long? = Long.MAX_VALUE, error: String? = null
-        ) = long().bound(min, max, error)
+        ) = long().bound(min, max, error) { it }
 
         @JvmStatic fun float() = single(String::toFloat)
         @JvmStatic fun float(
             min: Float? = Float.MIN_VALUE, max: Float? = Float.MAX_VALUE, error: String? = null
-        ) = float().bound(min, max, error)
+        ) = float().bound(min, max, error) { it }
 
         @JvmStatic fun double() = single(String::toDouble)
         @JvmStatic fun double(
             min: Double? = Double.MIN_VALUE, max: Double? = Double.MAX_VALUE, error: String? = null
-        ) = double().bound(min, max, error)
+        ) = double().bound(min, max, error) { it }
     }
 
     infix fun <V, T : V, U : V> Adapter<T>.or(other: Adapter<U>) = Adapter { this(it) ?: other(it) }
-}
 
-fun <N> Adapter<N>.bound(
-    min: N? = null,
-    max: N? = null,
-    error: String? = null
-): BoundAdapter<N> where N : Comparable<N>, N : Number = when {
-    min == null && max == null -> throw IllegalArgumentException(
-        "Parameters min and max may not both be null!"
-    )
-    min != null && max == null -> BoundAdapter(min, null) {
-        val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
-        if (read < min) throw InvalidSyntaxException(
-            error ?: "Expected value >= `$min`, actual: `$read`!"
-        )
-        else return@BoundAdapter read
+    fun <N> bound(
+        min: T? = null,
+        max: T? = null,
+        error: String? = null,
+        mapper: (T) -> N
+    ): BoundAdapter<T> where N : Comparable<N>, N : Number {
+        val minVal = min?.let(mapper)
+        val maxVal = max?.let(mapper)
+        return when {
+            min == null && max == null -> throw IllegalArgumentException(
+                "Parameters min and max may not both be null!"
+            )
+            min != null && max == null -> BoundAdapter(min, null) {
+                val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
+                if (mapper(read) < minVal!!) throw InvalidSyntaxException(
+                    error ?: "Expected value >= `$min`, actual: `$read`!"
+                )
+                else return@BoundAdapter read
+            }
+            min == null && max != null -> BoundAdapter(null, max) {
+                val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
+                if (mapper(read) > maxVal!!) throw InvalidSyntaxException(
+                    error ?: "Expected value <= `$max`, actual: `$read`!"
+                )
+                else return@BoundAdapter read
+            }
+            else -> BoundAdapter(min, max) {
+                val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
+                val check = mapper(read)
+                if (check < minVal!! || check > maxVal!!) throw InvalidSyntaxException(
+                    error ?: "Expected `$min` <= value <= `$max`, actual: `$read`!"
+                )
+                return@BoundAdapter read
+            }
+        }
     }
-    min == null && max != null -> BoundAdapter(null, max) {
-        val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
-        if (read > max) throw InvalidSyntaxException(
-            error ?: "Expected value <= `$max`, actual: `$read`!"
-        )
-        else return@BoundAdapter read
-    }
-    else -> BoundAdapter(min, max) {
-        val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
-        if (read < min!! || read > max!!) throw InvalidSyntaxException(
-            error ?: "Expected `$min` <= value <= `$max`, actual: `$read`!"
-        )
-        return@BoundAdapter read
-    }
-}
 
-fun <T, U> Adapter<T>.map(transform: (T) -> U?) : Adapter<U> = Adapter {
-    it.runCatching(this).getOrNull()?.let(transform)
+    fun <U> map(transform: (T) -> U?) : Adapter<U> = Adapter {
+        it.runCatching(this).getOrNull()?.let(transform)
+    }
 }
 
 class BoundAdapter<T>(
     val min: T? = null,
     val max: T? = null,
     block: (Arguments) -> T?
-) : Adapter<T>(block) where T : Comparable<T>, T : Number
+) : Adapter<T>(block)
