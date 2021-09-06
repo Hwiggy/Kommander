@@ -113,12 +113,11 @@ abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> :
         /**
          * Returns the primary labels for every registered child
          */
-        fun getIdentifiers() = byLabel.keys.ifEmpty { null }
-
+        fun getIdentifiers() = byLabel.keys.toSet()
         /**
          * Joins the primary labels for each registered child, separated by `|`
          */
-        fun concatIdentifiers() = getIdentifiers()?.joinToString("|")
+        fun concatIdentifiers() = getIdentifiers().joinToString("|")
 
         fun values() = byLabel.values.toList()
     }
