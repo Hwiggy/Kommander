@@ -6,7 +6,12 @@ open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
     companion object {
         @JvmStatic fun single() = Adapter(Arguments::next)
         @JvmStatic fun <T> single(transform: (String) -> T?) = single().map(transform)
-        
+        @JvmStatic fun slurp(separator: String = "") = Adapter {
+            val taken = mutableListOf<String>()
+            it.forEachRemaining { taken.add(it!!) }
+            return@Adapter taken.joinToString(separator)
+        }
+
         @JvmStatic fun byte() = single(String::toByte)
         @JvmStatic fun byte(
             min: Byte? = Byte.MIN_VALUE, max: Byte? = Byte.MAX_VALUE, error: String? = null
