@@ -139,7 +139,7 @@ class Synopsis(init: Configurator.() -> Unit) {
         val out = input.next(it.adapter) ?: it.default
         if (it is Group<*> && !it.isValid(out)) throw InvalidParameterException(out, it.name)
         it.name to out
-    }.let(::ProcessedArguments)
+    }.let(input::Processed)
 
     /**
      * Joins the parameter list to a string, for syntax

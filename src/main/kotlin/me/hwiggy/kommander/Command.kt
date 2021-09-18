@@ -1,7 +1,6 @@
 package me.hwiggy.kommander
 
 import me.hwiggy.kommander.arguments.Arguments
-import me.hwiggy.kommander.arguments.ProcessedArguments
 import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 
@@ -117,7 +116,7 @@ abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> :
         /**
          * Joins the primary labels for each registered child, separated by `|`
          */
-        fun concatIdentifiers() = getIdentifiers().joinToString("|")
+        fun concatIdentifiers() = getIdentifiers().joinToString("|").ifEmpty { null }
 
         fun values() = byLabel.values.toList()
     }
@@ -131,5 +130,5 @@ fun interface CommandExecutor<in S, out Output> {
      * Execution callback for commands
      * Recommended default behavior is to send an invalid sub-command message.
      */
-    fun execute(sender: S, arguments: ProcessedArguments): Output
+    fun execute(sender: S, arguments: Arguments.Processed): Output
 }
