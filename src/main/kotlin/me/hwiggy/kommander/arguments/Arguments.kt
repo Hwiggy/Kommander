@@ -59,6 +59,8 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
             return Arguments(raw.toTypedArray())
         }
     }
+
+    operator fun plus(other: Arguments) = Arguments(raw + other.raw)
 }
 
 /**
