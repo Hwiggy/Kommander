@@ -70,11 +70,10 @@ class Synopsis(init: Configurator.() -> Unit) {
      */
     fun buildParameterDetail(
         elementModifier: (ElementType, String) -> String,
-        elementJoiner: (Collection<String>) -> String = { it.joinToString() },
-        groupJoiner: (Collection<String>) -> String = { it.joinToString() }
-    ) = elements.map { group ->
-        group.map { elementModifier(it.first, it.second) }.let(elementJoiner)
-    }.let(groupJoiner)
+        elementJoiner: (Map<ElementType, String>) -> String
+    ) = elements.flatten().associate {
+        it.first to elementModifier(it.first, it.second)
+    }.let(elementJoiner)
 
     /**
      * Marker enum for Synopsis Elements
