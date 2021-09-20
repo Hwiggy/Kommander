@@ -197,6 +197,17 @@ abstract class Group<T>(init: Configurator<T>.() -> Unit) : Parameter<T> where T
     /**
      * Marker interface for group options
      */
-    interface Option { val synopsisName: String }
+    interface Option {
+        val synopsisName: String
+        companion object {
+            @JvmStatic inline fun <reified T : Enum<T>> byName(): (String) -> T? {
+                val method = T::class.java.getMethod("values").also {
+                    it.isAccessible = true
+                }
+                val values : Array<T> = method.invoke(null) as Array<T>
+                return { arg -> values.find { it.name.equals(arg, true) }}
+            }
+        }
+    }
 }
 
