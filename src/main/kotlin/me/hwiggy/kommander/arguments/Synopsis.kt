@@ -9,43 +9,18 @@ import me.hwiggy.kommander.InvalidParameterException
  */
 class Synopsis(init: Configurator.() -> Unit) {
     private val parameters = ArrayList<Parameter<*>>()
-    private val elements = ArrayList<ElementGroup>()
-    private class ElementGroup : LinkedHashMap<ElementType, String>() {
-        fun add(type: ElementType, element: String) = put(type, element)
-        fun add(type: ElementType, element: Any) = add(type, element.toString())
-    }
 
     /**
      * Adds a [Parameter] to the parameters list
      * Responsible for adding parameter-specific elements to the element list
      */
-    private fun addParameter(parameter: Parameter<*>) = parameter.apply {
-        val elementGroup = ElementGroup()
-        elementGroup.add(ElementType.PARAMETER_NAME, name)
-        elementGroup.add(ElementType.PARAMETER_DESCRIPTION, description)
-        if (this.default != null) elementGroup.add(ElementType.PARAMETER_DEFAULT, default!!)
-        (adapter as? BoundAdapter<*>)?.apply {
-            if (min != null) elementGroup.add(ElementType.VALUE_MIN, min)
-            if (max != null) elementGroup.add(ElementType.VALUE_MAX, max)
-        }
-        elements.add(elementGroup)
-    }.run(parameters::add)
+    private fun addParameter(parameter: Parameter<*>) = parameter.run(parameters::add)
 
     /**
      * Adds a [Group] to the parameters list
      * Responsible for adding group-specific elements to the element list
      */
-    private fun addGroup(group: Group<*>) = group.apply {
-        val elementGroup = ElementGroup()
-        elementGroup.add(ElementType.GROUP_NAME, name)
-        elementGroup.add(ElementType.GROUP_DESCRIPTION, description)
-        choices.forEach { (option, description) ->
-            elementGroup.add(ElementType.GROUP_OPTION, option.synopsisName)
-            elementGroup.add(ElementType.GROUP_OPTION_DESCRIPTION, description)
-        }
-        if (this.default != null) elementGroup.add(ElementType.GROUP_DEFAULT, default!!.synopsisName)
-        elements.add(elementGroup)
-    }.also(parameters::add)
+    private fun addGroup(group: Group<*>) = group.also(parameters::add)
 
     /**
      * Processes arguments using the defined parameters list
@@ -65,74 +40,16 @@ class Synopsis(init: Configurator.() -> Unit) {
     }
 
     /**
-     * Builds the parameter detail, taking into account the type of elements and their grouping.
-     * @param[elementModifier] The modifier for rendering an element based on its type
+     * Builds the parameter detail.
+     * @param[transformer] Function for transforming a parameter.
+     * @param[collector] Function for joining the parameter transformations to a single String.
      */
     fun buildParameterDetail(
-        elementRenderer: (Map<ElementType, String>) -> String,
-        elementModifier: (ElementType, String) -> String = { _, element -> element },
-        groupJoiner: (List<String>) -> String = { it.joinToString() }
-    ) = elements.map {
-        it.entries.associateTo(LinkedHashMap()) { entry ->
-            entry.key to elementModifier(entry.key, entry.value)
-        }.let(elementRenderer)
-    }.let(groupJoiner)
+        transformer: (Parameter<*>) -> String,
+        collector: (List<String>) -> String = { it.joinToString() }
+    ) = parameters.map(transformer).let(collector)
 
-    /**
-     * Marker enum for Synopsis Elements
-     */
-    enum class ElementType {
-        /**
-         * The name of a parameter
-         */
-        PARAMETER_NAME,
-
-        /**
-         * The description for a parameter
-         */
-        PARAMETER_DESCRIPTION,
-
-        /**
-         * The default option for a parameter
-         */
-        PARAMETER_DEFAULT,
-
-        /**
-         * The name of a group
-         */
-        GROUP_NAME,
-
-        /**
-         * The description for a group
-         */
-        GROUP_DESCRIPTION,
-
-        /**
-         * An option for a group
-         */
-        GROUP_OPTION,
-
-        /**
-         * The description for an option for a group
-         */
-        GROUP_OPTION_DESCRIPTION,
-
-        /**
-         * The default option for a group
-         */
-        GROUP_DEFAULT,
-
-        /**
-         * The minimum value for a parameter
-         */
-        VALUE_MIN,
-
-        /**
-         * The maximum value for a parameter
-         */
-        VALUE_MAX
-    }
-
+    @Suppress("unused")
     inner class Configurator {
         /**
          * Configures an required parameter
@@ -185,7 +102,7 @@ class Synopsis(init: Configurator.() -> Unit) {
             description: String,
             transform: (String) -> T?,
             default: T? = null,
-            init: Group<T>.Configurator.() -> Unit
+            init: Group.Configurator<T>.() -> Unit
         ) where T : Group.Option, T : Enum<T> = object : Group<T>(init) {
             override val name = name
             override val description = description
@@ -205,7 +122,7 @@ class Synopsis(init: Configurator.() -> Unit) {
             description: String,
             transform: (String) -> T?,
             default: T? = null,
-            init: Group<T>.Configurator.() -> Unit
+            init: Group.Configurator<T>.() -> Unit
         ) where T : Group.Option, T : Enum<T> = object : Group<T>(init) {
             override val name = name
             override val description = description
@@ -220,7 +137,7 @@ class Synopsis(init: Configurator.() -> Unit) {
 /**
  * Marker interface for a Synopsis parameter
  */
-private interface Parameter<T> {
+interface Parameter<T> {
     /**
      * The name of this parameter
      */
@@ -250,17 +167,21 @@ private interface Parameter<T> {
 /**
  * Represents a group of enumerated options as a Synopsis parameter
  */
-abstract class Group<T>(init: Group<T>.Configurator.() -> Unit) : Parameter<T> where T : Group.Option, T : Enum<T> {
-    internal val choices = ArrayList<Pair<T, String>>()
+abstract class Group<T>(init: Configurator<T>.() -> Unit) : Parameter<T> where T : Group.Option, T : Enum<T> {
+    val choices: List<Pair<T, String>>
 
-    inner class Configurator {
+    @Suppress("unused")
+    class Configurator<T> {
+        internal val choices = ArrayList<Pair<T, String>>()
         fun choice(option: T, description: String) {
             choices += option to description
         }
     }
 
     init {
-        Configurator().init()
+        Configurator<T>().also(init).also {
+            this.choices = it.choices.toList()
+        }
     }
 
     /**
