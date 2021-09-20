@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "me.hwiggy"
-version = "1.3.2"
+version = "1.3.3"
 
 repositories {
     mavenLocal()

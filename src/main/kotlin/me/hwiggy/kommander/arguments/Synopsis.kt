@@ -10,8 +10,8 @@ import me.hwiggy.kommander.InvalidParameterException
 class Synopsis(init: Configurator.() -> Unit) {
     private val parameters = ArrayList<Parameter<*>>()
     private val elements = ArrayList<ElementGroup>()
-    private class ElementGroup : ArrayList<Pair<ElementType, String>>() {
-        fun add(type: ElementType, element: String) = add(type to element)
+    private class ElementGroup : LinkedHashMap<ElementType, String>() {
+        fun add(type: ElementType, element: String) = put(type, element)
         fun add(type: ElementType, element: Any) = add(type, element.toString())
     }
 
@@ -69,11 +69,14 @@ class Synopsis(init: Configurator.() -> Unit) {
      * @param[elementModifier] The modifier for rendering an element based on its type
      */
     fun buildParameterDetail(
-        elementModifier: (ElementType, String) -> String,
-        elementJoiner: (Map<ElementType, String>) -> String
-    ) = elements.flatten().associate {
-        it.first to elementModifier(it.first, it.second)
-    }.let(elementJoiner)
+        elementRenderer: (Map<ElementType, String>) -> String,
+        elementModifier: (ElementType, String) -> String = { _, element -> element },
+        groupJoiner: (List<String>) -> String = { it.joinToString() }
+    ) = elements.map {
+        it.entries.associateTo(LinkedHashMap()) { entry ->
+            entry.key to elementModifier(entry.key, entry.value)
+        }.let(elementRenderer)
+    }.let(groupJoiner)
 
     /**
      * Marker enum for Synopsis Elements
