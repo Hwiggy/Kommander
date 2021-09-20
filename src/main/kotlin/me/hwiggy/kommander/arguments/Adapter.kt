@@ -12,6 +12,7 @@ open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
             return@Adapter taken.joinToString(separator)
         }
 
+        @JvmStatic fun boolean() = single(String::toBoolean)
         @JvmStatic fun byte() = single(String::toByte)
         @JvmStatic fun byte(
             min: Byte? = Byte.MIN_VALUE, max: Byte? = Byte.MAX_VALUE, error: String? = null
