@@ -72,10 +72,10 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
         val size = map.values.size
 
         @Suppress("UNCHECKED_CAST")
-        private fun <Output> optional(name: String): Output? = map[name] as? Output?
-        private fun <Output> optional(name: String, default: Output) = optional(name) ?: default
-        private fun <Direct, Output> optional(name: String, converter: (Direct) -> Output?) = optional<Direct>(name)?.let(converter)
-        private fun <Direct, Output> optional(name: String, default: Output, converter: (Direct) -> Output?) = optional(name, converter) ?: default
+        fun <Output> optional(name: String): Output? = map[name] as? Output?
+        fun <Output> optional(name: String, default: Output) = optional(name) ?: default
+        fun <Direct, Output> optional(name: String, converter: (Direct) -> Output?) = optional<Direct>(name)?.let(converter)
+        fun <Direct, Output> optional(name: String, default: Output, converter: (Direct) -> Output?) = optional(name, converter) ?: default
 
         fun <Output> required(name: String, error: String): Output {
             return optional(name) ?: throw InvalidSyntaxException(error)
