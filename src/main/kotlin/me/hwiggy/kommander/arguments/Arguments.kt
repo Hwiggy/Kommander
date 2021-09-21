@@ -2,7 +2,6 @@ package me.hwiggy.kommander.arguments
 
 import me.hwiggy.kommander.InvalidSyntaxException
 import java.util.regex.Pattern
-import kotlin.reflect.KProperty
 
 /**
  * This class represents an iterable array of Strings to be used during parameter parsing.
@@ -73,42 +72,17 @@ class Arguments(private val raw: Array<String>) : Iterator<String?> {
         val size = map.values.size
 
         @Suppress("UNCHECKED_CAST")
-        private fun <Output> get(name: String): Output? = map[name] as? Output?
-        private fun <Output> get(name: String, default: Output) = get(name) ?: default
-        private fun <Output> get(name: String, converter: (String) -> Output?) = get<String>(name)?.let(converter)
-        private fun <Output> get(name: String, default: Output, converter: (String) -> Output?) = get(name, converter) ?: default
+        private fun <Output> optional(name: String): Output? = map[name] as? Output?
+        private fun <Output> optional(name: String, default: Output) = optional(name) ?: default
+        private fun <Direct, Output> optional(name: String, converter: (Direct) -> Output?) = optional<Direct>(name)?.let(converter)
+        private fun <Direct, Output> optional(name: String, default: Output, converter: (Direct) -> Output?) = optional(name, converter) ?: default
 
-        private fun <Output> getReq(name: String, error: String): Output {
-            return get(name) ?: throw InvalidSyntaxException(error)
+        fun <Output> required(name: String, error: String): Output {
+            return optional(name) ?: throw InvalidSyntaxException(error)
         }
 
-        private fun <Output> getReq(name: String, error: String, converter: (String) -> Output?): Output {
-            return get(name, converter) ?: throw InvalidSyntaxException(error)
-        }
-
-        fun <Output> optional() = Delegate<Output?>(getter = this::get)
-        fun <Output> optional(name: String) = Delegate<Output?>(name, this::get)
-
-        fun <Output> optional(default: Output) = Delegate { get(it, default) }
-        fun <Output> optional(name: String, default: Output) = Delegate(name) { get(it, default) }
-
-        fun <Output> optional(converter: (String) -> Output?) = Delegate { get(it, converter)}
-        fun <Output> optional(name: String, converter: (String) -> Output?) = Delegate(name) { get(it, converter) }
-
-        fun <Output> optional(default: Output, converter: (String) -> Output?) = Delegate { get(it, default, converter) }
-        fun <Output> optional(name: String, default: Output, converter: (String) -> Output?) = Delegate(name) { get(it, default, converter) }
-
-        fun <Output> required(error: String) = Delegate<Output> { getReq(it, error) }
-        fun <Output> required(name: String, error: String) = Delegate<Output>(name) { getReq(it, error) }
-
-        fun <Output> required(error: String, converter: (String) -> Output?) = Delegate { getReq(it, error, converter) }
-        fun <Output> required(name: String, error: String, converter: (String) -> Output?) = Delegate(name) { getReq(name, error, converter) }
-
-        inner class Delegate<Output> internal constructor(
-            private val name: String? = null,
-            private val getter: (String) -> Output
-        ) {
-            operator fun getValue(thisRef: Nothing?, prop: KProperty<*>) = getter(name ?: prop.name)
+        fun <Direct, Output> required(name: String, error: String, converter: (Direct) -> Output?): Output {
+            return optional(name, converter) ?: throw InvalidSyntaxException(error)
         }
     }
 }
