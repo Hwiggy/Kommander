@@ -17,7 +17,6 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
      * @return The next element in the array if one is present, else null
      */
     override fun next() = if (hasNext()) raw[cursor++] else null
-
     /**
      * Used to require an element (non-null) be returned from the array
      * @param[error] Message for the exception thrown if the next element is absent.
@@ -26,18 +25,18 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
      */
     fun next(error: String): String = next() ?: throw InvalidSyntaxException(error)
 
-    fun <T> next(adapter: (Arguments) -> T?): T? {
+    fun <T> next(adapter: Adapter<T>, extra: Map<String, Any> = emptyMap()): T? {
         // Snapshot the index prior to using an adapter
         val pre = cursor
-        return adapter(this).also {
+        return adapter(this, extra).also {
             // If this adapter did not return a value, reset the index to the snapshot
             if (it == null) cursor = pre
         }
     }
 
     fun <T> next(
-        adapter: (Arguments) -> T?, error: String
-    ) = next(adapter) ?: throw InvalidSyntaxException(error)
+        adapter: Adapter<T>, error: String, extra: Map<String, Any> = emptyMap()
+    ) = next(adapter, extra) ?: throw InvalidSyntaxException(error)
 
     /**
      * Reduces [amount] from the current [cursor] to 'undo' an argument reading.

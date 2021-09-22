@@ -134,10 +134,16 @@ abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Se
 /**
  * Represents the executable part of a [Command]
  */
-fun interface CommandExecutor<in S, out Output> {
+fun interface CommandExecutor<in Sender, out Output> {
     /**
      * Execution callback for commands
      * Recommended default behavior is to send an invalid sub-command message.
      */
-    fun execute(sender: S, arguments: Arguments.Processed): Output
+    fun execute(sender: Sender, arguments: Arguments.Processed): Output
+
+    /**
+     * Hook to read extra parameters for Argument processing from a given [Sender]
+     * @return a [Map] containing extra parameters to be referenced in argument adapters.
+     */
+    fun getExtraParameters(sender: Sender): Map<String, Any> = emptyMap()
 }
