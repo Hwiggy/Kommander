@@ -5,6 +5,10 @@ import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 
 abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> : CommandExecutor<@UnsafeVariance Sender, Output> {
+    /**
+     * The parent of this command, if it is registered as a child.
+     */
+    var parent: Command<@UnsafeVariance Sender, Output, @UnsafeVariance C>? = null
     val children = Children()
 
     /**
@@ -37,7 +41,9 @@ abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> :
     /**
      * Registers another command as a child to this command
      */
-    fun addChild(command: @UnsafeVariance C) = children.register(command)
+    fun addChild(command: @UnsafeVariance C)  {
+        command.also { it.parent = this }.also(children::register)
+    }
 
     /**
      * Attempts to cascade into command children using the provided arguments
