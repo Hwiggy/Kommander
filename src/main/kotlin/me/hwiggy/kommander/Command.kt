@@ -70,12 +70,6 @@ abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Se
     }
 
     /**
-     * Concatenates the received arguments, then processes them against the command synopsis.
-     */
-    fun processArguments(args: Array<out String>) =
-        args.joinToString(" ").let(Arguments::parse).let(synopsis::process)
-
-    /**
      * Derives the parameter list from [Synopsis] or available children.
      * @return
      *      The first non-null element available from the following:
