@@ -2,11 +2,12 @@ package me.hwiggy.kommander.arguments
 
 import me.hwiggy.kommander.InvalidSyntaxException
 
-open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
+open class Adapter<T>(base: (Arguments, Map<String, Any>) -> T?) : (Arguments, Map<String, Any>) -> T? by base {
     companion object {
-        @JvmStatic fun single() = Adapter(Arguments::next)
+        @JvmStatic fun single() = Adapter { args, _ -> args.next() }
         @JvmStatic fun <T> single(transform: (String) -> T?) = single().map(transform)
-        @JvmStatic fun slurp(separator: String = "") = Adapter {
+        @JvmStatic fun <T> single(transform: (String, Map<String, Any>) -> T?) = single().map(transform)
+        @JvmStatic fun slurp(separator: String = "") = Adapter { it, _ ->
             val taken = mutableListOf<String>()
             it.forEachRemaining { taken.add(it!!) }
             return@Adapter taken.joinToString(separator)
@@ -44,7 +45,9 @@ open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
         ) = double().bound(min, max, error) { it }
     }
 
-    infix fun <V, T : V, U : V> Adapter<T>.or(other: Adapter<U>) = Adapter { this(it) ?: other(it) }
+    infix fun <V, T : V, U : V> Adapter<T>.or(other: Adapter<U>) = Adapter { it, extra ->
+        this(it, extra) ?: other(it, extra)
+    }
 
     fun <N> bound(
         min: T? = null,
@@ -58,22 +61,28 @@ open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
             min == null && max == null -> throw IllegalArgumentException(
                 "Parameters min and max may not both be null!"
             )
-            min != null && max == null -> BoundAdapter(min, null) {
-                val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
+            min != null && max == null -> BoundAdapter(min, null) { it, extra ->
+                val read = it.runCatching {
+                    this.next(this@Adapter, extra)
+                }.getOrNull() ?: return@BoundAdapter null
                 if (mapper(read) < minVal!!) throw InvalidSyntaxException(
                     error ?: "Expected value >= `$min`, actual: `$read`!"
                 )
                 else return@BoundAdapter read
             }
-            min == null && max != null -> BoundAdapter(null, max) {
-                val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
+            min == null && max != null -> BoundAdapter(null, max) { it, extra ->
+                val read = it.runCatching {
+                    this.next(this@Adapter, extra)
+                }.getOrNull() ?: return@BoundAdapter null
                 if (mapper(read) > maxVal!!) throw InvalidSyntaxException(
                     error ?: "Expected value <= `$max`, actual: `$read`!"
                 )
                 else return@BoundAdapter read
             }
-            else -> BoundAdapter(min, max) {
-                val read = it.runCatching(this).getOrNull() ?: return@BoundAdapter null
+            else -> BoundAdapter(min, max) { it, extra ->
+                val read = it.runCatching {
+                    this.next(this@Adapter, extra)
+                }.getOrNull() ?: return@BoundAdapter null
                 val check = mapper(read)
                 if (check < minVal!! || check > maxVal!!) throw InvalidSyntaxException(
                     error ?: "Expected `$min` <= value <= `$max`, actual: `$read`!"
@@ -83,13 +92,17 @@ open class Adapter<T>(base: (Arguments) -> T?) : (Arguments) -> T? by base {
         }
     }
 
-    fun <U> map(transform: (T) -> U?) : Adapter<U> = Adapter {
-        it.runCatching(this).getOrNull()?.let(transform)
+    fun <U> map(transform: (T, Map<String, Any>) -> U?): Adapter<U> = Adapter { it, extra ->
+        it.runCatching { this.next(this@Adapter, extra) }.getOrNull()?.let { transform(it, extra) }
+    }
+
+    fun <U> map(transform: (T) -> U?): Adapter<U> = Adapter { it, extra ->
+        it.runCatching { this.next(this@Adapter, extra) }.getOrNull()?.let(transform)
     }
 }
 
 class BoundAdapter<T>(
     val min: T? = null,
     val max: T? = null,
-    block: (Arguments) -> T?
+    block: (Arguments, Map<String, Any>) -> T?
 ) : Adapter<T>(block)
