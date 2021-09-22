@@ -2,11 +2,11 @@ package me.hwiggy.kommander.arguments
 
 import me.hwiggy.kommander.InvalidSyntaxException
 
-open class Adapter<T>(base: (Arguments, Map<String, Any>) -> T?) : (Arguments, Map<String, Any>) -> T? by base {
+open class Adapter<T>(base: (Arguments, ExtraParameters) -> T?) : (Arguments, ExtraParameters) -> T? by base {
     companion object {
         @JvmStatic fun single() = Adapter { args, _ -> args.next() }
         @JvmStatic fun <T> single(transform: (String) -> T?) = single().map(transform)
-        @JvmStatic fun <T> single(transform: (String, Map<String, Any>) -> T?) = single().map(transform)
+        @JvmStatic fun <T> single(transform: (String, ExtraParameters) -> T?) = single().map(transform)
         @JvmStatic fun slurp(separator: String = "") = Adapter { it, _ ->
             val taken = mutableListOf<String>()
             it.forEachRemaining { taken.add(it!!) }
@@ -92,7 +92,7 @@ open class Adapter<T>(base: (Arguments, Map<String, Any>) -> T?) : (Arguments, M
         }
     }
 
-    fun <U> map(transform: (T, Map<String, Any>) -> U?): Adapter<U> = Adapter { it, extra ->
+    fun <U> map(transform: (T, ExtraParameters) -> U?): Adapter<U> = Adapter { it, extra ->
         it.runCatching { this.next(this@Adapter, extra) }.getOrNull()?.let { transform(it, extra) }
     }
 
@@ -104,5 +104,5 @@ open class Adapter<T>(base: (Arguments, Map<String, Any>) -> T?) : (Arguments, M
 class BoundAdapter<T>(
     val min: T? = null,
     val max: T? = null,
-    block: (Arguments, Map<String, Any>) -> T?
+    block: (Arguments, ExtraParameters) -> T?
 ) : Adapter<T>(block)

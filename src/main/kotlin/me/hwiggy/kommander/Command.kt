@@ -1,6 +1,7 @@
 package me.hwiggy.kommander
 
 import me.hwiggy.kommander.arguments.Arguments
+import me.hwiggy.kommander.arguments.ExtraParameters
 import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 

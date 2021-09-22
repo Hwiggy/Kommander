@@ -25,7 +25,7 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
      */
     fun next(error: String): String = next() ?: throw InvalidSyntaxException(error)
 
-    fun <T> next(adapter: Adapter<T>, extra: Map<String, Any> = emptyMap()): T? {
+    fun <T> next(adapter: Adapter<T>, extra: ExtraParameters = ExtraParameters.EMPTY): T? {
         // Snapshot the index prior to using an adapter
         val pre = cursor
         return adapter(this, extra).also {
@@ -35,7 +35,7 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
     }
 
     fun <T> next(
-        adapter: Adapter<T>, error: String, extra: Map<String, Any> = emptyMap()
+        adapter: Adapter<T>, error: String, extra: ExtraParameters = ExtraParameters.EMPTY
     ) = next(adapter, extra) ?: throw InvalidSyntaxException(error)
 
     /**
