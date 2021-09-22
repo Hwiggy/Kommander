@@ -7,16 +7,16 @@ import java.util.regex.Pattern
  * This class represents an iterable array of Strings to be used during parameter parsing.
  * @param[raw] The raw array of Strings to iterate and parse with.
  */
-class Arguments(private val raw: Array<String>) : Iterator<String?> {
-    private var cursor = 0
+class Arguments(val raw: Array<String>) : Iterator<String?> {
+    private var cursor = -1
 
-    override fun hasNext() = cursor < raw.size
+    override fun hasNext() = cursor + 1 < raw.size
 
     /**
      * Used to optionally (nullable) return an element from the array
      * @return The next element in the array if one is present, else null
      */
-    override fun next() = if (hasNext()) raw[cursor++] else null
+    override fun next() = if (hasNext()) raw[++cursor] else null
 
     /**
      * Used to require an element (non-null) be returned from the array
