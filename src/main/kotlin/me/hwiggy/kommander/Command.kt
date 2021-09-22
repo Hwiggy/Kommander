@@ -4,11 +4,11 @@ import me.hwiggy.kommander.arguments.Arguments
 import me.hwiggy.kommander.arguments.Synopsis
 import java.lang.Exception
 
-abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> : CommandExecutor<@UnsafeVariance Sender, Output> {
+abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Self>> : CommandExecutor<@UnsafeVariance Sender, Output> {
     /**
      * The parent of this command, if it is registered as a child.
      */
-    var parent: Command<@UnsafeVariance Sender, Output, @UnsafeVariance C>? = null
+    var parent: @UnsafeVariance Self? = null
     val children = Children()
 
     /**
@@ -41,8 +41,8 @@ abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> :
     /**
      * Registers another command as a child to this command
      */
-    fun addChild(command: @UnsafeVariance C)  {
-        command.also { it.parent = this }.also(children::register)
+    fun addChild(command: @UnsafeVariance Self)  {
+        command.also { it.parent = this as Self }.also(children::register)
     }
 
     /**
@@ -53,7 +53,7 @@ abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> :
      */
     fun cascade(
         args: Array<out String>,
-        next: (String, C) -> Output,
+        next: (String, Self) -> Output,
         last: () -> Output,
         onError: (Exception) -> Output
     ): Output? {
@@ -93,17 +93,17 @@ abstract class Command<out Sender, Output, out C : Command<Sender, Output, C>> :
         /**
          * Map for registering children by name
          */
-        private val byLabel = HashMap<String, C>()
+        private val byLabel = HashMap<String, Self>()
 
         /**
          * Map for registering children by alias
          */
-        private val byAlias = HashMap<String, C>()
+        private val byAlias = HashMap<String, Self>()
 
         /**
          * Registers a command to each of the maps
          */
-        fun register(command: @UnsafeVariance C) {
+        fun register(command: @UnsafeVariance Self) {
             byLabel[command.name.lowercase()] = command
             command.aliases.forEach {
                 byAlias[it.lowercase()] = command
