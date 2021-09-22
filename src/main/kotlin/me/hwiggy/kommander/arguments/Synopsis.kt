@@ -47,7 +47,7 @@ class Synopsis(init: Configurator.() -> Unit) {
     fun buildParameterDetail(
         transformer: (Parameter<*>) -> String,
         collector: (List<String>) -> String = { it.joinToString() }
-    ) = parameters.map(transformer).let(collector)
+    ) = parameters.map(transformer).let(collector).ifEmpty { null }
 
     @Suppress("unused")
     inner class Configurator {
