@@ -10,7 +10,7 @@ import java.util.regex.Pattern
 class Arguments(val raw: Array<String>) : Iterator<String?> {
     private var cursor = 0
 
-    override fun hasNext() = cursor + 1 < raw.size
+    override fun hasNext() = cursor + 1 <= raw.size
 
     /**
      * Used to optionally (nullable) return an element from the array
