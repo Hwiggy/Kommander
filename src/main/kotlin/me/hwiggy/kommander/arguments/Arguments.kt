@@ -8,7 +8,7 @@ import java.util.regex.Pattern
  * @param[raw] The raw array of Strings to iterate and parse with.
  */
 class Arguments(val raw: Array<String>) : Iterator<String?> {
-    private var cursor = -1
+    private var cursor = 0
 
     override fun hasNext() = cursor + 1 < raw.size
 
@@ -16,7 +16,7 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
      * Used to optionally (nullable) return an element from the array
      * @return The next element in the array if one is present, else null
      */
-    override fun next() = if (hasNext()) raw[++cursor] else null
+    override fun next() = if (hasNext()) raw[cursor++] else null
 
     /**
      * Used to require an element (non-null) be returned from the array
@@ -61,7 +61,7 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
 
     operator fun plus(other: Arguments) = Arguments(raw + other.raw)
 
-    fun slice() = Arguments(raw.copyOfRange(cursor, raw.size - 1))
+    fun slice() = Arguments(raw.copyOfRange(cursor, raw.size))
 
     /**
      * Represents [Arguments] that have been processed through a Command's [Synopsis]
