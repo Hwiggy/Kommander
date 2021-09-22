@@ -25,8 +25,17 @@ abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Se
      * The usage for this command
      * Composed of primary identifier, plus either a parameter listing or subcommand listing, if available
      */
-    val usage: String
-        get() = "$name ${getParameterList() ?: ""}".trim()
+    fun getUsage(): String = getUsage(this.name)
+    fun getUsage(label: String): String {
+        var parent = this.parent
+        var parentStr = label
+        while (parent != null) {
+            parentStr = "${parent.name} $parentStr"
+            parent = parent.parent
+        }
+        return "$parentStr ${getParameterList() ?: ""}".trim()
+    }
+
 
     /**
      * The [Synopsis] for this command
