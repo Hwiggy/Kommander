@@ -106,3 +106,7 @@ class BoundAdapter<T>(
     val max: T? = null,
     block: (Arguments, ExtraParameters) -> T?
 ) : Adapter<T>(block)
+
+infix fun <V, T : V, U : V> Adapter<T>.or(other: Adapter<U>) = Adapter { args, extra ->
+    args.next(this, extra) ?: args.next(other, extra)
+}
