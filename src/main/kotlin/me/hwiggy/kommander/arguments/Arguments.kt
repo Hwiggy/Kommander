@@ -7,7 +7,10 @@ import java.util.regex.Pattern
  * This class represents an iterable array of Strings to be used during parameter parsing.
  * @param[raw] The raw array of Strings to iterate and parse with.
  */
-class Arguments(val raw: Array<String>) : Iterator<String?> {
+class Arguments(
+    val raw: Array<String>,
+    val extra: ExtraParameters = ExtraParameters.EMPTY
+) : Iterator<String?> {
     private var cursor = 0
 
     override fun hasNext() = cursor + 1 <= raw.size
@@ -25,7 +28,7 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
      */
     fun next(error: String): String = next() ?: throw InvalidSyntaxException(error)
 
-    fun <T> next(adapter: Adapter<T>, extra: ExtraParameters = ExtraParameters.EMPTY): T? {
+    fun <T> next(adapter: Adapter<T>): T? {
         // Snapshot the index prior to using an adapter
         val pre = cursor
         return adapter(this, extra).also {
@@ -35,8 +38,8 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
     }
 
     fun <T> next(
-        adapter: Adapter<T>, error: String, extra: ExtraParameters = ExtraParameters.EMPTY
-    ) = next(adapter, extra) ?: throw InvalidSyntaxException(error)
+        adapter: Adapter<T>, error: String
+    ) = next(adapter) ?: throw InvalidSyntaxException(error)
 
     /**
      * Reduces [amount] from the current [cursor] to 'undo' an argument reading.
@@ -47,20 +50,19 @@ class Arguments(val raw: Array<String>) : Iterator<String?> {
         // This pattern splits on quoted pairs, or spaces as a fallback.
         private val ARGS_PATTERN = Pattern.compile("\"([^\"]*)\"|([^ ]+)")
 
-        @JvmStatic fun parse(input: String): Arguments {
+        @JvmStatic fun parse(input: String, extra: ExtraParameters = ExtraParameters.EMPTY): Arguments {
             val raw = mutableListOf<String>()
             val matcher = ARGS_PATTERN.matcher(input)
             while (matcher.find()) raw += when {
                 matcher.group(1) != null -> matcher.group(1)
                 else -> matcher.group(2)
             }
-            return Arguments(raw.toTypedArray())
+            return Arguments(raw.toTypedArray(), extra)
         }
     }
 
-    operator fun plus(other: Arguments) = Arguments(raw + other.raw)
-
-    fun slice() = Arguments(raw.copyOfRange(cursor, raw.size))
+    operator fun plus(other: Arguments) = Arguments(raw + other.raw, extra)
+    fun slice() = Arguments(raw.copyOfRange(cursor, raw.size), extra)
 
     /**
      * Represents [Arguments] that have been processed through a Command's [Synopsis]

@@ -10,4 +10,6 @@ class ExtraParameters private constructor(private val map: Map<String, Any>) {
         @JvmStatic val EMPTY = ExtraParameters(emptyMap())
         @JvmStatic fun fromMap(map: Map<String, Any>) = ExtraParameters(map)
     }
+
+    fun plus(other: ExtraParameters) = ExtraParameters(other.map + map)
 }

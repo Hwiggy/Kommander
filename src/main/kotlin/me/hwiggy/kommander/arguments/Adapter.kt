@@ -61,27 +61,27 @@ open class Adapter<T>(base: (Arguments, ExtraParameters) -> T?) : (Arguments, Ex
             min == null && max == null -> throw IllegalArgumentException(
                 "Parameters min and max may not both be null!"
             )
-            min != null && max == null -> BoundAdapter(min, null) { it, extra ->
+            min != null && max == null -> BoundAdapter(min, null) { it, _ ->
                 val read = it.runCatching {
-                    this.next(this@Adapter, extra)
+                    this.next(this@Adapter)
                 }.getOrNull() ?: return@BoundAdapter null
                 if (mapper(read) < minVal!!) throw InvalidSyntaxException(
                     error ?: "Expected value >= `$min`, actual: `$read`!"
                 )
                 else return@BoundAdapter read
             }
-            min == null && max != null -> BoundAdapter(null, max) { it, extra ->
+            min == null && max != null -> BoundAdapter(null, max) { it, _ ->
                 val read = it.runCatching {
-                    this.next(this@Adapter, extra)
+                    this.next(this@Adapter)
                 }.getOrNull() ?: return@BoundAdapter null
                 if (mapper(read) > maxVal!!) throw InvalidSyntaxException(
                     error ?: "Expected value <= `$max`, actual: `$read`!"
                 )
                 else return@BoundAdapter read
             }
-            else -> BoundAdapter(min, max) { it, extra ->
+            else -> BoundAdapter(min, max) { it, _ ->
                 val read = it.runCatching {
-                    this.next(this@Adapter, extra)
+                    this.next(this@Adapter)
                 }.getOrNull() ?: return@BoundAdapter null
                 val check = mapper(read)
                 if (check < minVal!! || check > maxVal!!) throw InvalidSyntaxException(
@@ -93,11 +93,11 @@ open class Adapter<T>(base: (Arguments, ExtraParameters) -> T?) : (Arguments, Ex
     }
 
     fun <U> map(transform: (T, ExtraParameters) -> U?): Adapter<U> = Adapter { it, extra ->
-        it.runCatching { this.next(this@Adapter, extra) }.getOrNull()?.let { transform(it, extra) }
+        it.runCatching { this.next(this@Adapter) }.getOrNull()?.let { transform(it, extra) }
     }
 
-    fun <U> map(transform: (T) -> U?): Adapter<U> = Adapter { it, extra ->
-        it.runCatching { this.next(this@Adapter, extra) }.getOrNull()?.let(transform)
+    fun <U> map(transform: (T) -> U?): Adapter<U> = Adapter { it, _ ->
+        it.runCatching { this.next(this@Adapter) }.getOrNull()?.let(transform)
     }
 }
 
@@ -107,6 +107,6 @@ class BoundAdapter<T>(
     block: (Arguments, ExtraParameters) -> T?
 ) : Adapter<T>(block)
 
-infix fun <V, T : V, U : V> Adapter<T>.or(other: Adapter<U>) = Adapter { args, extra ->
-    args.next(this, extra) ?: args.next(other, extra)
+infix fun <V, T : V, U : V> Adapter<T>.or(other: Adapter<U>) = Adapter { args, _ ->
+    args.next(this) ?: args.next(other)
 }

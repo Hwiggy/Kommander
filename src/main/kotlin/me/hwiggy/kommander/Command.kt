@@ -146,5 +146,5 @@ fun interface CommandExecutor<in Sender, out Output> {
      * Hook to read extra parameters for Argument processing from a given [Sender]
      * @return a [Map] containing extra parameters to be referenced in argument adapters.
      */
-    fun getExtraParameters(sender: Sender): Map<String, Any> = emptyMap()
+    fun getExtraParameters(sender: Sender) = ExtraParameters.EMPTY
 }
