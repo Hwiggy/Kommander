@@ -25,8 +25,8 @@ class Synopsis(init: Configurator.() -> Unit) {
     /**
      * Processes arguments using the defined parameters list
      */
-    fun process(input: Arguments) = parameters.associateTo(HashMap()) {
-        val out = input.next(it.adapter) ?: it.default
+    fun process(input: Arguments, extra: ExtraParameters = ExtraParameters.EMPTY) = parameters.associateTo(HashMap()) {
+        val out = input.next(it.adapter, extra) ?: it.default
         if (it is Group<*> && out != null && !it.isValid(out))
             throw InvalidParameterException(out, it.name)
         it.name to out
