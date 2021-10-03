@@ -10,7 +10,7 @@ open class Adapter<T>(base: (Arguments, ExtraParameters) -> T?) : (Arguments, Ex
         @JvmStatic fun slurp(separator: String = "") = Adapter { it, _ ->
             val taken = mutableListOf<String>()
             it.forEachRemaining { taken.add(it!!) }
-            return@Adapter taken.joinToString(separator)
+            return@Adapter taken.joinToString(separator).trim().ifEmpty { null }
         }
 
         @JvmStatic fun boolean() = single(String::toBoolean)
