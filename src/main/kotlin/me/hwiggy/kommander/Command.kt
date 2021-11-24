@@ -3,14 +3,14 @@ package me.hwiggy.kommander
 import me.hwiggy.kommander.arguments.Arguments
 import me.hwiggy.kommander.arguments.ExtraParameters
 import me.hwiggy.kommander.arguments.Synopsis
-import java.lang.Exception
 
-abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Self>> : CommandExecutor<@UnsafeVariance Sender, Output> {
+abstract class Command<
+    out Sender, Output, Self : Command<Sender, Output, Self>
+> : ICommandParent<Sender, Output, Self> by CommandParent() {
     /**
      * The parent of this command, if it is registered as a child.
      */
     var parent: @UnsafeVariance Self? = null
-    val children = Children()
 
     /**
      * The name of this command, also the primary identifier
@@ -49,37 +49,6 @@ abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Se
     open val aliases = emptyList<String>()
 
     /**
-     * Registers another command as a child to this command
-     */
-    fun addChild(command: @UnsafeVariance Self)  {
-        command.also { it.parent = this as Self }.also(children::register)
-    }
-
-    /**
-     * Attempts to cascade into command children using the provided arguments
-     * @param[args] The arguments to cascade with
-     * @param[next] A BiFunction for the next identifier and child
-     *
-     */
-    fun cascade(
-        args: Array<out String>,
-        next: (String, Self) -> Output,
-        last: () -> Output,
-        onError: (Exception) -> Output
-    ): Output? {
-        return try {
-            if (args.isNotEmpty()) {
-                val identifier = args.first().lowercase()
-                val found = children.find(identifier)
-                if (found != null) return next(identifier, found)
-            }
-            last()
-        } catch (ex: Exception) {
-            onError(ex)
-        }
-    }
-
-    /**
      * Derives the parameter list from [Synopsis] or available children.
      * @return
      *      The first non-null element available from the following:
@@ -91,60 +60,14 @@ abstract class Command<out Sender, Output, out Self : Command<Sender, Output, Se
         synopsis.concatParameters() ?: children.concatIdentifiers()?.let { "<$it>" }
 
     /**
-     * Represents a registered map of child commands
-     */
-    inner class Children {
-        /**
-         * Map for registering children by name
-         */
-        private val byLabel = HashMap<String, Self>()
-
-        /**
-         * Map for registering children by alias
-         */
-        private val byAlias = HashMap<String, Self>()
-
-        /**
-         * Registers a command to each of the maps
-         */
-        fun register(command: @UnsafeVariance Self) {
-            byLabel[command.name.lowercase()] = command
-            command.aliases.forEach {
-                byAlias[it.lowercase()] = command
-            }
-        }
-
-        /**
-         * Attempts to locate a command using a primary or secondary identifier
-         */
-        fun find(identifier: String) = byLabel[identifier] ?: byAlias[identifier]
-
-        /**
-         * Returns the primary labels for every registered child
-         */
-        fun getIdentifiers() = byLabel.keys.toSet()
-        /**
-         * Joins the primary labels for each registered child, separated by `|`
-         */
-        fun concatIdentifiers() = getIdentifiers().joinToString("|").ifEmpty { null }
-
-        fun values() = byLabel.values.toList()
-    }
-}
-
-/**
- * Represents the executable part of a [Command]
- */
-fun interface CommandExecutor<in Sender, out Output> {
-    /**
      * Execution callback for commands
      * Recommended default behavior is to send an invalid sub-command message.
      */
-    fun execute(sender: Sender, arguments: Arguments.Processed): Output
+    abstract fun execute(sender: @UnsafeVariance Sender, label: String, arguments: Arguments.Processed): Output
 
     /**
      * Hook to read extra parameters for Argument processing from a given [Sender]
      * @return a [Map] containing extra parameters to be referenced in argument adapters.
      */
-    fun getExtraParameters(sender: Sender) = ExtraParameters.EMPTY
+    fun getExtraParameters(sender: @UnsafeVariance Sender) = ExtraParameters.EMPTY
 }
