@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.5.21"
+    kotlin("jvm") version "1.6.0"
     id("maven-publish")
 }
 
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly(kotlin("stdlib"))
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib:1.6.0")
 }
 
 publishing {
