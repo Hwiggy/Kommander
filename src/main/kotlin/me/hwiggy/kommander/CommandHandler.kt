@@ -3,8 +3,8 @@ package me.hwiggy.kommander
 import me.hwiggy.kommander.arguments.Arguments
 
 abstract class CommandHandler<
-    out Sender, Output, Cmd : Command<Sender, Output, Cmd>
-> : ICommandParent<Sender, Output, Cmd> by CommandParent() {
+    out Sender, Output, out Cmd : Command<Sender, Output, @UnsafeVariance Cmd>
+> : ICommandParent<Sender, Output, @UnsafeVariance Cmd> by CommandParent() {
 
     abstract fun defaultResult(): Output
     open fun handleThrown(error: Exception) = defaultResult()
