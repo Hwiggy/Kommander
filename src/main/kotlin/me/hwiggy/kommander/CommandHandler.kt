@@ -16,10 +16,13 @@ abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<S
 
     /**
      * Handles an exception thrown when processing a command
-     * Receives the command that threw the exception, so we can obtain usage information
+     * Receives each of the following:
+     *   [sender] - The sender who initiated the exception
+     *   [command] - The command that called the exception
+     *   [error] - The exception that was caught
      */
-    abstract fun handleThrown(command: Super, error: Exception): R2
-    
+    abstract fun handleThrown(sender: @UnsafeVariance Sender, command: Super, error: Exception): R2
+
     /**
      * Using provided arguments, acquires a relevant command and extra parameters
      * The command and extra parameters are used to determine an output value
@@ -32,7 +35,7 @@ abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<S
         label: String,
         args: MutableList<String>,
         consumer: (Super, ExtraParameters) -> Out,
-        handler: (Super, Exception) -> Out
+        handler: (Sender, Super, Exception) -> Out
     ): Out? {
         val first = findSingle(label)?.let {
             if (!it.applyConditions(sender)) null else it
@@ -41,7 +44,7 @@ abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<S
         val command = first.find(args, { it.applyConditions(sender) }) {
             extras += it.getExtra(sender)
         } ?: return null
-        return try { consumer(command, extras) } catch (ex: Exception) { handler(command, ex) }
+        return try { consumer(command, extras) } catch (ex: Exception) { handler(sender, command, ex) }
     }
 
     /**
