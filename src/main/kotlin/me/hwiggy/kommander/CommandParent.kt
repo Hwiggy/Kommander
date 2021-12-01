@@ -15,7 +15,8 @@ abstract class CommandParent<out Sender : Any, Output : Any?, Super : Command<Se
         args: MutableList<String>,
         predicate: (Super) -> Boolean = { true },
         whenAccepted: (Super) -> Unit = { }
-    ): Super? = if (args.isNotEmpty()) {
+    ): Super? {
+        if (args.isEmpty()) return null
         // Peek the identifier
         val identifier = args.first().lowercase()
         // Find a matching command
@@ -23,25 +24,44 @@ abstract class CommandParent<out Sender : Any, Output : Any?, Super : Command<Se
         if (command != null) {
             // Consume the identifier
             args.removeFirst()
-            // Test preconditions
-            if (predicate(command)) {
-                // Cascade if conditions passed
-                val next = command.apply(whenAccepted).find(args, predicate)
-                // Update cursor if a child was found
-                if (next != null) command = next
-            }
+            // Test preconditions, null return on failed predicate
+            if (!predicate(command)) return null
+            // Cascade if conditions passed
+            val next = command.apply(whenAccepted).find(args, predicate)
+            // Update cursor if a child was found
+            if (next != null) command = next
         }
         // Return the last registered command
-        command
-    } else null
-
-    open fun register(child: Super) {
-        commands[child.name] = child
-        child.aliases.forEach { commands[it] = child }
+        return command
     }
 
+    /**
+     * Registers a Command to the internal collection
+     * Custom registration tasks may be handled through [postRegister]
+     */
+    fun register(child: Super) {
+        commands[child.name] = child
+        child.aliases.forEach { commands[it] = child }
+        postRegister(child)
+    }
+
+    /**
+     * Called so implementation can perform additional functionality post registration
+     */
+    open fun postRegister(child: Super) = Unit
+
+    /**
+     * Locates a single command from the internal collection
+     */
     fun findSingle(identifier: String) = commands[identifier]
+
+    /**
+     * Obtains all commands (not keys) from the internal collection
+     */
     fun children(): Set<Super> = commands.values.toSet()
 
+    /**
+     * Returns the [ExtraParameters] for a given [Sender]
+     */
     open fun getExtra(sender: @UnsafeVariance Sender) = ExtraParameters.EMPTY
 }
