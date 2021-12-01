@@ -8,8 +8,8 @@ class ExtraParameters private constructor(private val map: Map<String, Any>) {
 
     companion object {
         @JvmStatic val EMPTY = ExtraParameters(emptyMap())
-        @JvmStatic fun fromMap(map: Map<String, Any>) = ExtraParameters(map)
+        @JvmStatic fun of(vararg elements: Pair<String, Any>) = ExtraParameters(mutableMapOf(*elements))
     }
 
-    fun plus(other: ExtraParameters) = ExtraParameters(other.map + map)
+    operator fun plus(other: ExtraParameters) = ExtraParameters(other.map + map)
 }

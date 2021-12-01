@@ -5,9 +5,9 @@ import me.hwiggy.kommander.InvalidParameterException
 /**
  * Represents a synopsis of named parameters and parameter groups
  * Used to build help and syntax information for commands.
- *
+ * Default constructor has an empty block of no parameters.
  */
-class Synopsis(init: Configurator.() -> Unit) {
+class Synopsis(init: Configurator.() -> Unit = { }) {
     private val parameters = ArrayList<Parameter<*>>()
 
     /**
@@ -188,7 +188,7 @@ abstract class Group<T>(init: Configurator<T>.() -> Unit) : Parameter<T> where T
     /**
      * Concatenates the group options into a pipe delimited list
      */
-    fun concatOptions() = choices.map { it.first }.joinToString("|", transform = Option::synopsisName)
+    fun concatOptions() = choices.joinToString("|") { it.first.synopsisName }
 
     /**
      * Tests if an object is a valid option for this group

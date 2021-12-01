@@ -61,7 +61,7 @@ class Arguments(
         }
     }
 
-    operator fun plus(other: Arguments) = Arguments(raw + other.raw, extra)
+    operator fun plus(other: Arguments) = Arguments(raw + other.raw, extra + other.extra)
     fun slice() = Arguments(raw.copyOfRange(cursor, raw.size), extra)
 
     /**

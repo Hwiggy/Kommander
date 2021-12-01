@@ -1,26 +1,35 @@
 package me.hwiggy.kommander
 
-import me.hwiggy.kommander.arguments.Arguments
+import me.hwiggy.kommander.arguments.ExtraParameters
 
-abstract class CommandHandler<
-    out Sender, Output, out Cmd : Command<Sender, Output, @UnsafeVariance Cmd>
-> : ICommandParent<Sender, Output, @UnsafeVariance Cmd> by CommandParent() {
+abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<Sender, R1, Super>> : CommandParent<Sender, R1, Super>() {
 
-    abstract fun defaultResult(): Output
-    open fun handleThrown(error: Exception) = defaultResult()
-    open fun handleUnknown(sender: @UnsafeVariance Sender) = defaultResult()
+    abstract fun defaultFailResult(): R2
+    abstract fun convertResult(cmdOut: R1): R2
+    abstract fun handleThrown(error: Exception): R2
 
-    fun cascade(sender: @UnsafeVariance Sender, args: Array<String>): Output? {
-        val argumentList = args.toMutableList()
-        val found = find(argumentList) ?: return handleUnknown(sender)
-        val extraParameters = found.getExtraParameters(sender)
-        val identifier = argumentList.removeFirst()
-        val arguments = Arguments(args, extraParameters)
-        val processed = found.synopsis.process(arguments)
-        return try {
-            found.execute(sender, identifier, processed)
-        } catch (ex: Exception) {
-            handleThrown(ex)
-        }
+    fun <Out> acquireContext(
+        sender: @UnsafeVariance Sender,
+        label: String,
+        args: MutableList<String>,
+        consumer: (Super, ExtraParameters) -> Out,
+        handler: (Exception) -> Out
+    ): Out? {
+        val first: Super = findSingle(label)?.let {
+            if (!it.applyConditions(sender)) null else it
+        } ?: return null
+        var extras = getExtra(sender) + first.getExtra(sender)
+        val command = first.find(args, { it.applyConditions(sender) }) {
+            extras += it.getExtra(sender)
+        } ?: first
+        return try { consumer(command, extras) } catch (ex: Exception) { handler(ex) }
     }
+
+    fun process(
+        sender: @UnsafeVariance Sender,
+        label: String,
+        args: MutableList<String>
+    ) = acquireContext(sender, label, args, { command, extras ->
+        command.process(sender, args.toTypedArray(), extras).let(this::convertResult)
+    }, this::handleThrown) ?: defaultFailResult()
 }

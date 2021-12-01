@@ -4,49 +4,37 @@ import me.hwiggy.kommander.arguments.Arguments
 import me.hwiggy.kommander.arguments.ExtraParameters
 import me.hwiggy.kommander.arguments.Synopsis
 
-abstract class Command<
-    out Sender, Output, Self : Command<Sender, Output, Self>
-> : ICommandParent<Sender, Output, Self> by CommandParent() {
+abstract class Command<out Sender : Any, Output : Any?, Super : Command<Sender, Output, Super>> : CommandParent<Sender, Output, Super>() {
     /**
      * The parent of this command, if it is registered as a child.
+     * Null, if this Command is a top level command.
      */
-    var parent: @UnsafeVariance Self? = null
+    protected var parent: Command<@UnsafeVariance Sender, Output, Super>? = null
 
     /**
-     * The name of this command, also the primary identifier
+     * [name] - The primary identifier of the command
+     * [aliases] - The secondary identifiers of this command. Empty by default.
+     * [description] - A short text describing what the command does
+     * [synopsis] - The [Synopsis] for this command
      */
     abstract val name: String
-
-    /**
-     * The description for this command.
-     */
+    open val aliases = emptyList<String>()
     abstract val description: String
+    open val synopsis = Synopsis()
 
     /**
      * The usage for this command
      * Composed of primary identifier, plus either a parameter listing or subcommand listing, if available
      */
-    fun getUsage(): String = getUsage(this.name)
-    fun getUsage(label: String): String {
+    fun getUsage(): String {
         var parent = this.parent
-        var parentStr = label
+        var parentStr = this.name
         while (parent != null) {
             parentStr = "${parent.name} $parentStr"
             parent = parent.parent
         }
         return "$parentStr ${getParameterList() ?: ""}".trim()
     }
-
-
-    /**
-     * The [Synopsis] for this command
-     */
-    open val synopsis = Synopsis { /* Default implementation has no parameters */ }
-
-    /**
-     * Secondary identifiers for this command
-     */
-    open val aliases = emptyList<String>()
 
     /**
      * Derives the parameter list from [Synopsis] or available children.
@@ -57,17 +45,32 @@ abstract class Command<
      *      OR `null`
      */
     fun getParameterList(): String? =
-        synopsis.concatParameters() ?: children.concatIdentifiers()?.let { "<$it>" }
+        synopsis.concatParameters() ?: children().ifEmpty { null }?.joinToString(
+            prefix = "<",
+            postfix = ">",
+            separator = "|",
+            transform = Command<Sender, Output, Super>::name
+        )
+
+    /**
+     * Processes provided arguments & extra parameters, evaluates the synopsis, and executes the command
+     */
+    fun process(sender: @UnsafeVariance Sender, args: Array<String>, extra: ExtraParameters): Output {
+        val arguments = Arguments(args, extra)
+        val processed = synopsis.process(arguments)
+        return execute(sender, processed)
+    }
 
     /**
      * Execution callback for commands
      * Recommended default behavior is to send an invalid sub-command message.
      */
-    abstract fun execute(sender: @UnsafeVariance Sender, label: String, arguments: Arguments.Processed): Output
+    abstract fun execute(sender: @UnsafeVariance Sender, arguments: Arguments.Processed): Output
 
     /**
-     * Hook to read extra parameters for Argument processing from a given [Sender]
-     * @return a [Map] containing extra parameters to be referenced in argument adapters.
+     * Tests if this command can be run as the given sender
+     * All of this command's parents will have their conditions applied first.
+     * If any parent's conditions are unsuccessful, the child will not be reached.
      */
-    fun getExtraParameters(sender: @UnsafeVariance Sender) = ExtraParameters.EMPTY
+    open fun applyConditions(sender: @UnsafeVariance Sender) = true
 }
