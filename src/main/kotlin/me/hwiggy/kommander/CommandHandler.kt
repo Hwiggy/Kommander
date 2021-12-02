@@ -11,8 +11,9 @@ abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<S
 
     /**
      * Converts a command result [R1] to a handler result [R2]
+     * Default return value is the default result of this handler
      */
-    abstract fun convertResult(cmdOut: R1): R2
+    open fun convertResult(cmdOut: R1) = defaultResult()
 
     /**
      * Handles an exception thrown when processing a command
