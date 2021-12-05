@@ -1,13 +1,14 @@
 package me.hwiggy.kommander
 
 import me.hwiggy.kommander.arguments.ExtraParameters
+import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class CommandHandler<
     BaseSender : Any,
     out Sender : BaseSender,
     R2, R1 : Any?,
     Super : Command<BaseSender, Sender, R1, Super>
-    > : CommandParent<BaseSender, Sender, R1, Super>() {
+    > : CommandParent<BaseSender, BaseSender, R1, Super>() {
 
     /**
      * The default [R2] value returned when a command execution has failed
@@ -27,7 +28,7 @@ abstract class CommandHandler<
      *   [command] - The command that called the exception
      *   [error] - The exception that was caught
      */
-    abstract fun handleThrown(sender: @UnsafeVariance Sender, command: Super, error: Exception): R2
+    abstract fun handleThrown(sender: BaseSender, command: Super, error: Exception): R2
 
     /**
      * Using provided arguments, acquires a relevant command and extra parameters
@@ -36,26 +37,23 @@ abstract class CommandHandler<
      *
      * This method can be used for abstracting additional functionality for child commands
      */
+    @Suppress("UNCHECKED_CAST")
     fun <Out> acquireContext(
-        sender: @UnsafeVariance Sender,
-        label: String,
+        sender: BaseSender,
         args: MutableList<String>,
-        consumer: (Super, ExtraParameters) -> Out,
-        handler: (Sender, Super, Exception) -> Out
+        consumer: (Sender, Super, ExtraParameters) -> Out,
+        handler: (BaseSender, Super, Exception) -> Out
     ): Out? {
-        // Find the root command
-        val first = findSingle(label)?.let {
-            // Attempt root conditions for the sender
-            if (!it.applyConditions(sender)) null else it
-        } ?: return null
         // If the root command was valid, we can continue
-        var extras = getExtra(sender) + first.getExtra(sender)
+        var extras = getExtra(sender)
         // Start trying to find subcommands, falling back on the root command
-        val command = first.find(first, args, { it.applyConditions(sender) }) {
-            extras += it.getExtra(sender)
-        }
+        val command = find(
+            AtomicBoolean(true),
+            null, args,
+            { it.applyConditions(sender) }
+        ) { extras += it.getExtra(sender as Sender) } ?: return null
         return try {
-            consumer(command, extras)
+            consumer(sender as Sender, command, extras)
         } catch (ex: Exception) {
             handler(sender, command, ex)
         }
@@ -67,12 +65,11 @@ abstract class CommandHandler<
      * Otherwise, returns the return result of the command, converted by [convertResult]
      */
     fun process(
-        sender: @UnsafeVariance Sender,
-        label: String,
+        baseSender: BaseSender,
         args: MutableList<String>
     ) = acquireContext(
-        sender, label, args,
-        { command, extras ->
+        baseSender, args,
+        { sender, command, extras ->
             command.process(sender, args.toTypedArray(), extras).let(this::convertResult)
         },
         this::handleThrown

@@ -1,6 +1,7 @@
 package me.hwiggy.kommander
 
 import me.hwiggy.kommander.arguments.ExtraParameters
+import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class CommandParent<
     BaseSender : Any,
@@ -17,23 +18,33 @@ abstract class CommandParent<
      * @return The found command, that has been validated by all [predicate]s
      */
     @JvmOverloads fun find(
-        lastFound: Super,
+        control: AtomicBoolean,
+        lastFound: Super? = null,
         args: MutableList<String>,
         predicate: (Super) -> Boolean = { true },
-        whenAccepted: (Super) -> Unit = { }
-    ): Super {
+        whenAccepted: (Super) -> Unit = { },
+    ): Super? {
+        // Skip search if control is cancelled
+        if (!control.get()) return lastFound
         // Skip search if there are no arguments
         if (args.isEmpty()) return lastFound
         // Peek the identifier
         val identifier = args.first().lowercase()
         // Find the next one
-        val found = findSingle(identifier) ?: return lastFound
-        // Test preconditions
-        if (!predicate(found)) return lastFound
+        val found = findSingle(identifier)
+        if (found == null) {
+            control.set(false)
+            return lastFound
+        }
+        // Test preconditions, return null if it failed
+        if (!predicate(found)) {
+            control.set(false)
+            return null
+        }
         // Consume the identifier
         args.removeFirst()
         // Cascade into children
-        return found.apply(whenAccepted).find(found, args, predicate)
+        return found.apply(whenAccepted).find(control, found, args, predicate)
     }
 
     /**

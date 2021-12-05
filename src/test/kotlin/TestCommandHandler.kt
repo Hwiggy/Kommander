@@ -21,6 +21,6 @@ class TestCommandHandler :
     fun perform(sender: CommandSender, input: String) {
         val args = Arguments.split(input)
         val identifier = args.removeFirst()
-        process(sender, identifier, args)
+        process(sender, args.also { it.add(0, identifier) })
     }
 }
