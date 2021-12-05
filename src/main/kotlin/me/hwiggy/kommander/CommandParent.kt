@@ -27,14 +27,13 @@ abstract class CommandParent<
         // Peek the identifier
         val identifier = args.first().lowercase()
         // Find the next one
-        return findSingle(identifier)?.let { found ->
-            // Test preconditions
-            if (!predicate(found)) return lastFound
-            // Consume the identifier
-            args.removeFirst()
-            // Cascade into children
-            found.apply(whenAccepted).find(found, args, predicate)
-        } ?: lastFound
+        val found = findSingle(identifier) ?: return lastFound
+        // Test preconditions
+        if (!predicate(found)) return lastFound
+        // Consume the identifier
+        args.removeFirst()
+        // Cascade into children
+        return found.apply(whenAccepted).find(found, args, predicate)
     }
 
     /**
