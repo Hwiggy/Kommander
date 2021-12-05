@@ -2,7 +2,12 @@ package me.hwiggy.kommander
 
 import me.hwiggy.kommander.arguments.ExtraParameters
 
-abstract class CommandParent<out Sender : Any, Output : Any?, Super : Command<Sender, Output, Super>> {
+abstract class CommandParent<
+    BaseSender : Any,
+    out Sender : BaseSender,
+    Output : Any?,
+    Super : Command<BaseSender, Sender, Output, Super>
+> {
     private val commands = HashMap<String, Super>()
 
     /**

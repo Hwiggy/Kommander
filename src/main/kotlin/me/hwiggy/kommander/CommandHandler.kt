@@ -2,7 +2,12 @@ package me.hwiggy.kommander
 
 import me.hwiggy.kommander.arguments.ExtraParameters
 
-abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<Sender, R1, Super>> : CommandParent<Sender, R1, Super>() {
+abstract class CommandHandler<
+    BaseSender : Any,
+    out Sender : BaseSender,
+    R2, R1 : Any?,
+    Super : Command<BaseSender, Sender, R1, Super>
+    > : CommandParent<BaseSender, Sender, R1, Super>() {
 
     /**
      * The default [R2] value returned when a command execution has failed

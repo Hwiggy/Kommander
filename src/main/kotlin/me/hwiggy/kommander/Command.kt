@@ -4,12 +4,16 @@ import me.hwiggy.kommander.arguments.Arguments
 import me.hwiggy.kommander.arguments.ExtraParameters
 import me.hwiggy.kommander.arguments.Synopsis
 
-abstract class Command<out Sender : Any, Output : Any?, Super : Command<Sender, Output, Super>> : CommandParent<Sender, Output, Super>() {
+abstract class Command<
+    BaseSender : Any,
+    out Sender : BaseSender,
+    Output : Any?, Super : Command<BaseSender, Sender, Output, Super>
+> : CommandParent<BaseSender, Sender, Output, Super>() {
     /**
      * The parent of this command, if it is registered as a child.
      * Null, if this Command is a top level command.
      */
-    protected var parent: Command<@UnsafeVariance Sender, Output, Super>? = null
+    protected var parent: Command<BaseSender, @UnsafeVariance Sender, Output, Super>? = null
 
     /**
      * [name] - The primary identifier of the command
@@ -49,7 +53,7 @@ abstract class Command<out Sender : Any, Output : Any?, Super : Command<Sender, 
             prefix = "<",
             postfix = ">",
             separator = "|",
-            transform = Command<Sender, Output, Super>::name
+            transform = Command<BaseSender, Sender, Output, Super>::name
         )
 
     /**
@@ -72,5 +76,5 @@ abstract class Command<out Sender : Any, Output : Any?, Super : Command<Sender, 
      * All of this command's parents will have their conditions applied first.
      * If any parent's conditions are unsuccessful, the child will not be reached.
      */
-    open fun applyConditions(sender: @UnsafeVariance Sender) = true
+    open fun applyConditions(sender: BaseSender) = true
 }

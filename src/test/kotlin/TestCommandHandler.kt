@@ -2,7 +2,7 @@ import me.hwiggy.kommander.CommandHandler
 import me.hwiggy.kommander.arguments.Arguments
 
 class TestCommandHandler :
-    CommandHandler<CommandSender, Unit, String, CommandBootstrap<CommandSender>>()
+    CommandHandler<CommandSender, CommandSender, Unit, String, CommandBootstrap<CommandSender>>()
 {
     override fun defaultResult() = Unit
 

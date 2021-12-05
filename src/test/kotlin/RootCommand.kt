@@ -16,18 +16,19 @@ class StringSender : CommandSender {
 }
 
 abstract class CommandBootstrap<out Sender : CommandSender> :
-    Command<Sender, String, CommandBootstrap<@UnsafeVariance Sender>>() {
+    Command<CommandSender, Sender, String, CommandBootstrap<@UnsafeVariance Sender>>() {
     abstract fun isValid(sender: CommandSender): Boolean
     final override fun execute(
         sender: @UnsafeVariance Sender,
         arguments: Arguments.Processed
     ) = sender.name
+
+    override fun applyConditions(sender: CommandSender) = isValid(sender)
 }
 
 abstract class GenericBootstrap : CommandBootstrap<CommandSender>() {
     override fun isValid(sender: CommandSender) = true
 }
-
 abstract class NumberBootstrap : CommandBootstrap<NumberSender>() {
     override fun isValid(sender: CommandSender) = sender is NumberSender
 }
