@@ -12,27 +12,24 @@ abstract class CommandParent<out Sender : Any, Output : Any?, Super : Command<Se
      * @return The found command, that has been validated by all [predicate]s
      */
     @JvmOverloads fun find(
+        lastFound: Super,
         args: MutableList<String>,
         predicate: (Super) -> Boolean = { true },
         whenAccepted: (Super) -> Unit = { }
-    ): Super? {
-        if (args.isEmpty()) return null
+    ): Super {
+        // Skip search if there are no arguments
+        if (args.isEmpty()) return lastFound
         // Peek the identifier
         val identifier = args.first().lowercase()
-        // Find a matching command
-        var command = findSingle(identifier)
-        if (command != null) {
+        // Find the next one
+        return findSingle(identifier)?.let { found ->
+            // Test preconditions
+            if (!predicate(found)) return lastFound
             // Consume the identifier
             args.removeFirst()
-            // Test preconditions, null return on failed predicate
-            if (!predicate(command)) return null
-            // Cascade if conditions passed
-            val next = command.apply(whenAccepted).find(args, predicate)
-            // Update cursor if a child was found
-            if (next != null) command = next
-        }
-        // Return the last registered command
-        return command
+            // Cascade into children
+            found.apply(whenAccepted).find(found, args, predicate)
+        } ?: lastFound
     }
 
     /**

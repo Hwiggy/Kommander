@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "me.hwiggy"
-version = "1.6.6"
+version = "1.6.9"
 
 repositories {
     mavenLocal()
@@ -13,6 +13,13 @@ repositories {
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib:1.6.0")
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }
 
 publishing {
@@ -40,4 +47,12 @@ publishing {
             from(components["java"])
         }
     }
+}
+
+tasks.compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

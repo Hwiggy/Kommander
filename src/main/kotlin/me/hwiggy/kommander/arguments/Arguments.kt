@@ -51,13 +51,17 @@ class Arguments(
         private val ARGS_PATTERN = Pattern.compile("\"([^\"]*)\"|([^ ]+)")
 
         @JvmStatic fun parse(input: String, extra: ExtraParameters = ExtraParameters.EMPTY): Arguments {
+            return Arguments(split(input).toTypedArray(), extra)
+        }
+
+        @JvmStatic fun split(input: String): MutableList<String> {
             val raw = mutableListOf<String>()
             val matcher = ARGS_PATTERN.matcher(input)
             while (matcher.find()) raw += when {
                 matcher.group(1) != null -> matcher.group(1)
                 else -> matcher.group(2)
             }
-            return Arguments(raw.toTypedArray(), extra)
+            return raw
         }
     }
 

@@ -38,14 +38,22 @@ abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<S
         consumer: (Super, ExtraParameters) -> Out,
         handler: (Sender, Super, Exception) -> Out
     ): Out? {
+        // Find the root command
         val first = findSingle(label)?.let {
+            // Attempt root conditions for the sender
             if (!it.applyConditions(sender)) null else it
         } ?: return null
+        // If the root command was valid, we can continue
         var extras = getExtra(sender) + first.getExtra(sender)
-        val command = first.find(args, { it.applyConditions(sender) }) {
+        // Start trying to find subcommands, falling back on the root command
+        val command = first.find(first, args, { it.applyConditions(sender) }) {
             extras += it.getExtra(sender)
-        } ?: return null
-        return try { consumer(command, extras) } catch (ex: Exception) { handler(sender, command, ex) }
+        }
+        return try {
+            consumer(command, extras)
+        } catch (ex: Exception) {
+            handler(sender, command, ex)
+        }
     }
 
     /**
@@ -57,7 +65,11 @@ abstract class CommandHandler<out Sender : Any, R2, R1 : Any?, Super : Command<S
         sender: @UnsafeVariance Sender,
         label: String,
         args: MutableList<String>
-    ) = acquireContext(sender, label, args, { command, extras ->
-        command.process(sender, args.toTypedArray(), extras).let(this::convertResult)
-    }, this::handleThrown) ?: defaultResult()
+    ) = acquireContext(
+        sender, label, args,
+        { command, extras ->
+            command.process(sender, args.toTypedArray(), extras).let(this::convertResult)
+        },
+        this::handleThrown
+    ) ?: defaultResult()
 }

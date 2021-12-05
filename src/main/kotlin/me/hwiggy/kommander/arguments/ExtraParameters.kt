@@ -11,5 +11,5 @@ class ExtraParameters private constructor(private val map: Map<String, Any>) {
         @JvmStatic fun of(vararg elements: Pair<String, Any>) = ExtraParameters(mutableMapOf(*elements))
     }
 
-    operator fun plus(other: ExtraParameters) = ExtraParameters(other.map + map)
+    operator fun plus(other: ExtraParameters) = ExtraParameters(map + other.map)
 }
