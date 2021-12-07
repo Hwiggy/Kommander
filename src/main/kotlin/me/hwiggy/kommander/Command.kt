@@ -13,7 +13,7 @@ abstract class Command<
      * The parent of this command, if it is registered as a child.
      * Null, if this Command is a top level command.
      */
-    protected var parent: Command<BaseSender, @UnsafeVariance Sender, Output, Super>? = null
+    protected var parent: Super? = null
 
     /**
      * [name] - The primary identifier of the command
