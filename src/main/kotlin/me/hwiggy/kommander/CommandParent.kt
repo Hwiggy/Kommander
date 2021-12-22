@@ -9,7 +9,7 @@ abstract class CommandParent<
     Output : Any?,
     Super : Command<BaseSender, Sender, Output, Super>
 > {
-    private val commands = HashMap<String, Super>()
+    protected val commands = HashMap<String, Super>()
 
     /**
      * Cascades into every child to find the command referenced by the provided arguments
