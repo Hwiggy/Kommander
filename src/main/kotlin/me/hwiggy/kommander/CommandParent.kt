@@ -51,13 +51,13 @@ abstract class CommandParent<
      * Registers a Command to the internal collection
      * Custom registration tasks may be handled through [postRegister]
      */
-    fun register(child: Super) {
-        commands[child.name] = child
-        child.aliases.forEach { commands[it] = child }
-        postRegister(child)
+    fun register(vararg children: Super) {
+        children.forEach { child ->
+            commands[child.name] = child
+            child.aliases.forEach { commands[it] = child }
+            postRegister(child)
+        }
     }
-
-    fun registerAll(vararg children: Super) = children.forEach(::register)
 
     /**
      * Called so implementation can perform additional functionality post registration
