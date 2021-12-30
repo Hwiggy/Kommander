@@ -57,6 +57,8 @@ abstract class CommandParent<
         postRegister(child)
     }
 
+    fun registerAll(vararg children: Super) = children.forEach(::register)
+
     /**
      * Called so implementation can perform additional functionality post registration
      */
