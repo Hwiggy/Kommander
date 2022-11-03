@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm") version "1.7.20"
     id("maven-publish")
     id("com.github.johnrengelman.shadow") version "7.1.0"
 }
@@ -16,11 +16,13 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven("https://nexus.mcdevs.us/repository/mcdevs")
+        maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+        maven("https://oss.sonatype.org/content/repositories/snapshots")
     }
 
     dependencies {
-        compileOnly("org.jetbrains.kotlin:kotlin-stdlib:1.6.0")
-        testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+        compileOnly("org.jetbrains.kotlin:kotlin-stdlib:1.7.20")
+        testImplementation("org.junit.jupiter:junit-jupiter:5.9.0")
     }
 
     java {

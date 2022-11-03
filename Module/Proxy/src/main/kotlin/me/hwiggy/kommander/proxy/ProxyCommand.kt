@@ -1,19 +1,20 @@
-package me.hwiggy.kommander.spigot
+package me.hwiggy.kommander.proxy
 
 import me.hwiggy.kommander.Command
+import me.hwiggy.kommander.Extensions.test
 import me.hwiggy.kommander.arguments.Arguments
-import org.bukkit.command.CommandSender
-import org.bukkit.command.ConsoleCommandSender
-import org.bukkit.entity.Player
+import net.md_5.bungee.api.CommandSender
+import net.md_5.bungee.api.connection.ProxiedPlayer
 
-abstract class BukkitCommand<out Sender : CommandSender> :
-    Command<CommandSender, Sender, Unit, BukkitCommand<@UnsafeVariance Sender>>() {
+abstract class ProxyCommand<out Sender : CommandSender> : Command<CommandSender, Sender, Unit, ProxyCommand<@UnsafeVariance Sender>>() {
     open val permission: String? = null
 
     open val permissionMessage = "§cYou do not have permission to use that command!"
-    open val invalidSenderMessage = "§cYou are not a valid executor for this command!"
-    open val invalidSubcommandMessage = "§cYou did not provide a valid subcommand!"
+    open val badSenderMessage = "§cYou are not a valid executor for this command!"
+    open val badChildMessage = "§cYou did not provide a valid subcommand!"
     open val exceptionCaughtMessage = "§cAn exception occurred! Check console!"
+
+    override fun postRegister(child: ProxyCommand<@UnsafeVariance Sender>) { child.parent = this }
 
     /**
      * Any exception that propagates from this command into the command handler is returned here.
@@ -43,7 +44,7 @@ abstract class BukkitCommand<out Sender : CommandSender> :
 
     /**
      * Gets the tab completions for this command
-     * Default return value is an empty list
+     * Default return value is a list of children commands
      */
     open fun tabComplete(sender: @UnsafeVariance Sender, arguments: Array<String>) =
         children().map { it.name }.toMutableList()
@@ -53,13 +54,13 @@ abstract class BukkitCommand<out Sender : CommandSender> :
      * Default implementation sends an invalid subcommand message to the sender.
      */
     override fun execute(sender: @UnsafeVariance Sender, arguments: Arguments.Processed) {
-        sender.sendMessage(invalidSubcommandMessage)
+        sender.sendMessage(badChildMessage)
     }
 
-    private fun <T : Any?> T.test(predicate: (T) -> Boolean?) = predicate(this)
+
     override fun applyConditions(sender: CommandSender): Boolean {
         if (!isValidSender(sender)) {
-            sender.sendMessage(invalidSenderMessage)
+            sender.sendMessage(badSenderMessage)
             return false
         }
         if (permission?.test(sender::hasPermission) == false) {
@@ -69,28 +70,8 @@ abstract class BukkitCommand<out Sender : CommandSender> :
         return true
     }
 
-    override fun postRegister(child: BukkitCommand<@UnsafeVariance Sender>) { child.parent = this }
 }
 
-/**
- * Shorthand class for commands that may only be used by [Player]s
- */
-abstract class PlayerCommand : BukkitCommand<Player>() {
-    override val invalidSenderMessage = "§cYou must be a player to use this command!"
-    final override fun isValidSender(sender: CommandSender) = sender is Player
-}
-
-/**
- * Shorthand class for commands that may only be used by [ConsoleCommandSender]s
- */
-abstract class ConsoleCommand : BukkitCommand<ConsoleCommandSender>() {
-    override val invalidSenderMessage = "§cYou must be console to use this command!"
-    final override fun isValidSender(sender: CommandSender) = sender is ConsoleCommandSender
-}
-
-/**
- * Shorthand class for commands that may be used by any [CommandSender]
- */
-abstract class GenericCommand : BukkitCommand<CommandSender>() {
-    final override fun isValidSender(sender: CommandSender) = true
+abstract class ProxiedPlayerCommand : ProxyCommand<ProxiedPlayer>() {
+    final override fun isValidSender(sender: CommandSender) = sender is ProxiedPlayer
 }

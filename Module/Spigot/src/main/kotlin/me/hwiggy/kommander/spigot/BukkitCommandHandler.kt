@@ -2,14 +2,21 @@ package me.hwiggy.kommander.spigot
 
 import me.hwiggy.kommander.CommandHandler
 import me.hwiggy.kommander.InvalidSyntaxException
-import me.hwiggy.reflection.declaredConstructor
-import me.hwiggy.reflection.declaredInstanceField
 import org.bukkit.Bukkit
 import org.bukkit.command.*
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.SimplePluginManager
 import org.bukkit.plugin.java.JavaPlugin
+import java.lang.reflect.Constructor
 
+
+val COMMAND_MAP: CommandMap by lazy {
+    SimplePluginManager::class.java.getDeclaredField("commandMap").also { it.isAccessible = true }.get(Bukkit.getPluginManager()) as CommandMap
+}
+val PLUGIN_COMMAND_CTOR: Constructor<PluginCommand> by lazy {
+    PluginCommand::class.java.getDeclaredConstructor(String::class.java, Plugin::class.java)
+        .also { it.isAccessible = true }
+}
 open class BukkitCommandHandler :
     CommandHandler<CommandSender, CommandSender, Boolean, Unit, BukkitCommand<CommandSender>>(), TabExecutor {
     override fun defaultResult() = true
@@ -65,18 +72,12 @@ open class BukkitCommandHandler :
     }
 }
 
-val COMMAND_MAP: CommandMap = SimplePluginManager::class.java.declaredInstanceField(
-    "commandMap", Bukkit.getPluginManager()
-)
-
 /**
  * Registers commands via the SimplePluginManager CommandMap
  */
 class ReflectiveCommandHandler(private val plugin: Plugin) : BukkitCommandHandler() {
     override fun postRegister(child: BukkitCommand<CommandSender>) {
-        val pluginCommand = PluginCommand::class.java.declaredConstructor(
-            arrayOf(String::class.java, Plugin::class.java), child.name, plugin
-        ).also { transformPluginCommand(it, child) }
+        val pluginCommand = PLUGIN_COMMAND_CTOR.newInstance(child.name, plugin).also { transformPluginCommand(it, child) }
         val fallback = plugin.name.lowercase()
         COMMAND_MAP.register(fallback, pluginCommand)
     }
